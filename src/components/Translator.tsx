@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Upload, Sparkles,
+  Square, Sparkles,
 } from "lucide-react";
 
 type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
