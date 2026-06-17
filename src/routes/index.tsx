@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Mic, Camera, Languages, Volume2, History, Sparkles } from "lucide-react";
 import heroImg from "@/assets/hero-translate.jpg";
+import appLogo from "@/assets/app-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,7 +42,10 @@ function Landing() {
   return (
     <div className="min-h-screen gradient-subtle">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <span className="text-2xl font-extrabold text-gradient">ترجملي</span>
+        <span className="flex items-center gap-2 text-2xl font-extrabold text-gradient">
+          <img src={appLogo} alt="ترجملي" width={36} height={36} className="size-9 rounded-xl" />
+          ترجملي
+        </span>
         <Link to="/auth">
           <Button variant="outline" className="rounded-xl">تسجيل الدخول</Button>
         </Link>
