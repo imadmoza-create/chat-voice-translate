@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { translateText, translateImage } from "@/lib/translate.functions";
+import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
+import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
+import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,15 +16,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Upload, Sparkles,
+  Square, Sparkles,
 } from "lucide-react";
 
-type Result = { detectedLang: string; translation: string; sourceText: string };
+type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
 
 export function Translator() {
   const { user } = useAuth();
   const doText = useServerFn(translateText);
-  const doImage = useServerFn(translateImage);
 
   const [targetLang, setTargetLang] = useState("en");
   const [text, setText] = useState("");
@@ -31,7 +32,6 @@ export function Translator() {
   const [gender, setGender] = useState<VoiceGender>("female");
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const targetMeta = langByCode(targetLang);
 
@@ -96,26 +96,12 @@ export function Translator() {
     rec.start();
   };
 
-  const handleImage = async (file: File) => {
-    if (file.size > 8_000_000) { toast.error("حجم الصورة كبير جداً (الحد 8MB)."); return; }
-    setBusy(true);
-    setResult(null);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const dataUrl = reader.result as string;
-        const r = (await doImage({ data: { image: dataUrl, targetLang: targetMeta?.name ?? targetLang } })) as Result;
-        setText(r.sourceText);
-        setResult(r);
-        await saveHistory(r, "image");
-      } catch (err) {
-        handleAiError(err);
-      } finally {
-        setBusy(false);
-      }
-    };
-    reader.readAsDataURL(file);
+  const handleImageResult = async (r: ImgResult) => {
+    setText(r.sourceText);
+    setResult(r);
+    await saveHistory(r, "image");
   };
+
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("تم النسخ"); };
 
@@ -189,23 +175,12 @@ export function Translator() {
         </TabsContent>
 
         <TabsContent value="image" className="mt-4 space-y-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
+          <ImageTranslator
+            targetLangName={targetMeta?.name ?? targetLang}
+            onResult={handleImageResult}
           />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card p-10 transition-colors hover:border-primary"
-          >
-            {busy ? <Loader2 className="size-8 animate-spin text-primary" /> : <Upload className="size-8 text-primary" />}
-            <span className="font-medium">اختر صورة تحتوي على نص</span>
-            <span className="text-xs text-muted-foreground">سيتم استخراج النص وترجمته تلقائياً</span>
-          </button>
         </TabsContent>
+
       </Tabs>
 
       {result && (
@@ -239,6 +214,29 @@ export function Translator() {
               <Star className="size-4" /> المفضلة
             </Button>
           </div>
+
+          {result.conjugations && result.conjugations.length > 0 && (
+            <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
+              <p className="text-sm font-semibold">تصريف الفعل مع أمثلة</p>
+              <div className="space-y-1.5">
+                {result.conjugations.map((c, i) => (
+                  <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-card px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{c.pronoun} — {c.form}</span>
+                      <button
+                        onClick={() => speak(c.example || c.form, targetMeta?.bcp47 ?? "en-US", gender)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="استمع"
+                      >
+                        <Volume2 className="size-4" />
+                      </button>
+                    </div>
+                    {c.example && <span className="text-xs text-muted-foreground">{c.example}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
