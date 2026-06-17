@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { translateText, translateImage } from "@/lib/translate.functions";
+import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LANGUAGES, langByCode } from "@/lib/languages";
