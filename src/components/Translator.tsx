@@ -19,7 +19,7 @@ import {
   Square, Upload, Sparkles,
 } from "lucide-react";
 
-type Result = { detectedLang: string; translation: string; sourceText: string };
+type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
 
 export function Translator() {
   const { user } = useAuth();
