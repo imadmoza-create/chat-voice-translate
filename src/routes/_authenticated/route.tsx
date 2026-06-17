@@ -35,7 +35,10 @@ function AuthenticatedLayout() {
     <div className="min-h-screen gradient-subtle">
       <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <Link to="/app" className="text-xl font-extrabold text-gradient">ترجملي</Link>
+          <Link to="/app" className="flex items-center gap-2 text-xl font-extrabold text-gradient">
+            <img src={appLogo} alt="ترجملي" width={32} height={32} className="size-8 rounded-lg" />
+            ترجملي
+          </Link>
           <nav className="flex items-center gap-1">
             <Link to="/app">
               <Button variant={pathname === "/app" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
