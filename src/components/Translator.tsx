@@ -96,26 +96,12 @@ export function Translator() {
     rec.start();
   };
 
-  const handleImage = async (file: File) => {
-    if (file.size > 8_000_000) { toast.error("حجم الصورة كبير جداً (الحد 8MB)."); return; }
-    setBusy(true);
-    setResult(null);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const dataUrl = reader.result as string;
-        const r = (await doImage({ data: { image: dataUrl, targetLang: targetMeta?.name ?? targetLang } })) as Result;
-        setText(r.sourceText);
-        setResult(r);
-        await saveHistory(r, "image");
-      } catch (err) {
-        handleAiError(err);
-      } finally {
-        setBusy(false);
-      }
-    };
-    reader.readAsDataURL(file);
+  const handleImageResult = async (r: ImgResult) => {
+    setText(r.sourceText);
+    setResult(r);
+    await saveHistory(r, "image");
   };
+
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("تم النسخ"); };
 
