@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useRouterState, Link } from "@tan
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Languages, History, LogOut, Loader2 } from "lucide-react";
+import { Languages, History, LogOut, Loader2, GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
