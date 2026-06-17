@@ -24,7 +24,6 @@ type Result = { detectedLang: string; translation: string; sourceText: string; c
 export function Translator() {
   const { user } = useAuth();
   const doText = useServerFn(translateText);
-  const doImage = useServerFn(translateImage);
 
   const [targetLang, setTargetLang] = useState("en");
   const [text, setText] = useState("");
@@ -33,7 +32,6 @@ export function Translator() {
   const [gender, setGender] = useState<VoiceGender>("female");
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const targetMeta = langByCode(targetLang);
 
