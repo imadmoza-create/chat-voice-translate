@@ -214,6 +214,29 @@ export function Translator() {
               <Star className="size-4" /> المفضلة
             </Button>
           </div>
+
+          {result.conjugations && result.conjugations.length > 0 && (
+            <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
+              <p className="text-sm font-semibold">تصريف الفعل مع أمثلة</p>
+              <div className="space-y-1.5">
+                {result.conjugations.map((c, i) => (
+                  <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-card px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{c.pronoun} — {c.form}</span>
+                      <button
+                        onClick={() => speak(c.example || c.form, targetMeta?.bcp47 ?? "en-US", gender)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="استمع"
+                      >
+                        <Volume2 className="size-4" />
+                      </button>
+                    </div>
+                    {c.example && <span className="text-xs text-muted-foreground">{c.example}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
