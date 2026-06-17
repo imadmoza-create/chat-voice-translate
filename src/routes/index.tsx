@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Mic, Camera, Languages, Volume2, History, Sparkles } from "lucide-react";
 import heroImg from "@/assets/hero-translate.jpg";
+import appLogo from "@/assets/app-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
