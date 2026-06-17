@@ -175,23 +175,12 @@ export function Translator() {
         </TabsContent>
 
         <TabsContent value="image" className="mt-4 space-y-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
+          <ImageTranslator
+            targetLangName={targetMeta?.name ?? targetLang}
+            onResult={handleImageResult}
           />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card p-10 transition-colors hover:border-primary"
-          >
-            {busy ? <Loader2 className="size-8 animate-spin text-primary" /> : <Upload className="size-8 text-primary" />}
-            <span className="font-medium">اختر صورة تحتوي على نص</span>
-            <span className="text-xs text-muted-foreground">سيتم استخراج النص وترجمته تلقائياً</span>
-          </button>
         </TabsContent>
+
       </Tabs>
 
       {result && (
