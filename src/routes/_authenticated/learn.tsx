@@ -126,10 +126,10 @@ function LearnPage() {
         <h1 className="text-2xl font-bold">تعلّم</h1>
       </div>
 
-      <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1 text-sm font-medium">
-        {(["words", "pronouns", "mine", "quiz"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-2 py-1.5 ${tab === t ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
-            {t === "words" ? "الكلمات" : t === "pronouns" ? "الضمائر" : t === "mine" ? "من سجلي" : "اختبار"}
+      <div className="grid grid-cols-5 gap-1 rounded-xl bg-muted p-1 text-xs font-medium sm:text-sm">
+        {(["words", "pronouns", "verbs", "mine", "quiz"] as Tab[]).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-1.5 py-1.5 ${tab === t ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
+            {t === "words" ? "الكلمات" : t === "pronouns" ? "الضمائر" : t === "verbs" ? "الأفعال" : t === "mine" ? "سجلي" : "اختبار"}
           </button>
         ))}
       </div>
