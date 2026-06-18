@@ -6,9 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { WORD_CATEGORIES, PRONOUNS, type LearnItem } from "@/lib/learn";
 import { LANGUAGES, langByCode } from "@/lib/languages";
-import { translateBatch } from "@/lib/translate.functions";
+import { translateBatch, translateText, type Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
-import { Volume2, GraduationCap, Loader2, Trophy, RotateCcw, Check, X } from "lucide-react";
+import { Volume2, GraduationCap, Loader2, Trophy, RotateCcw, Check, X, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/learn")({
   head: () => ({ meta: [{ title: "تعلّم الكلمات والضمائر — ترجملي" }] }),
