@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/learn")({
   component: LearnPage,
 });
 
-type Tab = "words" | "pronouns" | "mine" | "quiz";
+type Tab = "words" | "pronouns" | "verbs" | "mine" | "quiz";
 type UserGender = "male" | "female";
 
 // عرض نص العنصر باللغة الهدف
