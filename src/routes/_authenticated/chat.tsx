@@ -96,7 +96,7 @@ function ChatPage() {
   };
 
   const handleClear = async () => {
-    await clearMsgs({ data: {} as never }).catch(() => {});
+    await clearMsgs().catch(() => {});
     setMessages([]);
     stopSpeaking();
   };
