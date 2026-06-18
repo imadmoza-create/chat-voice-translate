@@ -51,6 +51,11 @@ function AuthenticatedLayout() {
                 <GraduationCap className="size-4" /> تعلّم
               </Button>
             </Link>
+            <Link to="/chat">
+              <Button variant={pathname === "/chat" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+                <Bot className="size-4" /> المساعد
+              </Button>
+            </Link>
             <Link to="/history">
               <Button variant={pathname === "/history" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
                 <History className="size-4" /> السجل
