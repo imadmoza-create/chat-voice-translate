@@ -191,8 +191,97 @@ function LearnPage() {
         )
       )}
 
+      {tab === "verbs" && <VerbTrainer lang={lang} voiceGender={voiceGender} />}
+
       {tab === "quiz" && (
         <Quiz items={allItems} lang={lang} cache={cache} voiceGender={voiceGender} ready={!translating} />
+      )}
+    </div>
+  );
+}
+
+const COMMON_VERBS = ["يأكل", "يشرب", "يذهب", "يكتب", "يقرأ", "يتكلم", "ينام", "يلعب", "يعمل", "يحب", "يرى", "يأتي"];
+
+function VerbTrainer({ lang, voiceGender }: { lang: string; voiceGender: VoiceGender }) {
+  const run = useServerFn(translateText);
+  const [verb, setVerb] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ translation: string; conjugations: Conjugation[] } | null>(null);
+  const langName = langByCode(lang)?.name ?? "English";
+  const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
+
+  const train = async (v: string) => {
+    const t = v.trim();
+    if (!t || loading) return;
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const r = await run({ data: { text: t, targetLang: langName } });
+      setResult({ translation: r.translation, conjugations: r.conjugations });
+      if (r.conjugations.length === 0) setError("لم يتم التعرف على فعل. جرّب فعلاً واضحاً مثل: يكتب، يأكل.");
+    } catch (e: any) {
+      setError(e?.message?.includes("CREDITS") ? "نفد الرصيد." : e?.message?.includes("RATE_LIMIT") ? "تجاوزت حد الطلبات، حاول لاحقاً." : "حدث خطأ، حاول مجدداً.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border bg-card p-4">
+        <div className="flex items-center gap-2">
+          <Zap className="size-5 text-primary" />
+          <p className="font-bold">تصريف الأفعال بـ{langByCode(lang)?.nameAr ?? langName}</p>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">اكتب فعلاً بأي لغة وسيعرض تصريفه الكامل مع أمثلة.</p>
+        <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); train(verb); }}>
+          <input
+            value={verb}
+            onChange={(e) => setVerb(e.target.value)}
+            placeholder="مثال: يكتب / to write"
+            dir="auto"
+            className="flex-1 rounded-xl border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button type="submit" disabled={loading || !verb.trim()} className="rounded-xl gradient-primary text-primary-foreground">
+            {loading ? <Loader2 className="size-4 animate-spin" /> : "درّب"}
+          </Button>
+        </form>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {COMMON_VERBS.map((v) => (
+            <button key={v} onClick={() => { setVerb(v); train(v); }} className="rounded-lg border bg-background px-2.5 py-1 text-xs text-muted-foreground hover:border-primary">
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {result && result.conjugations.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-2xl border bg-card p-4">
+            <div>
+              <div className="text-xs text-muted-foreground">الفعل</div>
+              <div className="text-lg font-bold" dir="auto">{result.translation}</div>
+            </div>
+            <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={() => speak(result.translation, bcp47, voiceGender)}>
+              <Volume2 className="size-4" /> استمع
+            </Button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {result.conjugations.map((c, i) => (
+              <div key={i} className="rounded-xl border bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <div dir="auto"><span className="text-muted-foreground">{c.pronoun}</span> <span className="font-bold">{c.form}</span></div>
+                  <button onClick={() => speak(c.example || c.form, bcp47, voiceGender)} className="text-muted-foreground hover:text-primary">
+                    <Volume2 className="size-4" />
+                  </button>
+                </div>
+                {c.example && <div className="mt-1 text-sm text-muted-foreground" dir="auto">{c.example}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
