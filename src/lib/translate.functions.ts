@@ -83,6 +83,53 @@ async function callGateway(messages: unknown[], model = MODEL): Promise<Translat
   return parseAi(content);
 }
 
+const BatchInput = z.object({
+  words: z.array(z.string().min(1).max(60)).min(1).max(40),
+  targetLang: z.string().min(2).max(40),
+});
+
+async function callGatewayRaw(messages: unknown[], model = MODEL): Promise<string> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  const res = await fetch(GATEWAY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model, messages }),
+  });
+  if (res.status === 429) throw new Error("RATE_LIMIT");
+  if (res.status === 402) throw new Error("CREDITS");
+  if (!res.ok) throw new Error(`AI error ${res.status}`);
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content ?? "";
+}
+
+// Translate a list of single words/phrases into the target language.
+export const translateBatch = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => BatchInput.parse(input))
+  .handler(async ({ data }): Promise<{ translations: string[] }> => {
+    const sys = `You are a translation engine. Translate each item in the JSON array into ${data.targetLang}. Respond ONLY with a strict JSON array of strings, same length and order as the input, no markdown, no extra text.`;
+    const content = await callGatewayRaw([
+      { role: "system", content: sys },
+      { role: "user", content: JSON.stringify(data.words) },
+    ]);
+    let raw = content.trim();
+    const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fence) raw = fence[1].trim();
+    const start = raw.indexOf("[");
+    const end = raw.lastIndexOf("]");
+    if (start !== -1 && end !== -1) raw = raw.slice(start, end + 1);
+    let arr: unknown = [];
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      arr = [];
+    }
+    const translations = Array.isArray(arr)
+      ? arr.map((x, i) => String(x ?? data.words[i] ?? ""))
+      : data.words;
+    return { translations };
+  });
+
 export const translateText = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TextInput.parse(input))
   .handler(async ({ data }) => {
