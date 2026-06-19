@@ -55,6 +55,7 @@ export function ImageTranslator({
 }) {
   const doImage = useServerFn(translateImage);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<ImgItem[]>([]);
   const [busy, setBusy] = useState(false);
 
