@@ -38,6 +38,45 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_progress: {
+        Row: {
+          completed_themes: string[]
+          created_at: string
+          id: string
+          last_active_date: string | null
+          level: string
+          streak: number
+          target_lang: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          completed_themes?: string[]
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          level?: string
+          streak?: number
+          target_lang: string
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          completed_themes?: string[]
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          level?: string
+          streak?: number
+          target_lang?: string
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -89,6 +128,51 @@ export type Database = {
           target_lang?: string
           translated_text?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vocab_reviews: {
+        Row: {
+          created_at: string
+          due_at: string
+          ease: number
+          id: string
+          interval_days: number
+          lang: string
+          level: string
+          reps: number
+          translation: string
+          updated_at: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string
+          ease?: number
+          id?: string
+          interval_days?: number
+          lang: string
+          level?: string
+          reps?: number
+          translation: string
+          updated_at?: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string
+          ease?: number
+          id?: string
+          interval_days?: number
+          lang?: string
+          level?: string
+          reps?: number
+          translation?: string
+          updated_at?: string
+          user_id?: string
+          word?: string
         }
         Relationships: []
       }
