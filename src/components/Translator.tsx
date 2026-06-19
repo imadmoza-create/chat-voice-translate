@@ -137,9 +137,10 @@ export function Translator() {
       </div>
 
       <Tabs defaultValue="text" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl">
+        <TabsList className="grid w-full grid-cols-4 rounded-xl">
           <TabsTrigger value="text" className="rounded-lg gap-1.5"><LangIcon className="size-4" /> نص</TabsTrigger>
           <TabsTrigger value="voice" className="rounded-lg gap-1.5"><Mic className="size-4" /> صوت</TabsTrigger>
+          <TabsTrigger value="speaker" className="rounded-lg gap-1.5"><MessageCircle className="size-4" /> متحدّث</TabsTrigger>
           <TabsTrigger value="image" className="rounded-lg gap-1.5"><Camera className="size-4" /> صورة</TabsTrigger>
         </TabsList>
 
