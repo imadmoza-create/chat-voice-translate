@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Upload, Loader2, Crop, X, Sparkles, Check } from "lucide-react";
+import { Upload, Loader2, Crop, X, Sparkles, Check, Camera as CameraIcon } from "lucide-react";
 
 export type ImgResult = {
   detectedLang: string;
