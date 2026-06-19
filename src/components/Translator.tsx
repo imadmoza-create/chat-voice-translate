@@ -175,6 +175,14 @@ export function Translator() {
           </Button>
         </TabsContent>
 
+        <TabsContent value="speaker" className="mt-4">
+          <SpeakerMode
+            targetLangName={targetMeta?.name ?? targetLang}
+            targetBcp47={targetMeta?.bcp47 ?? "en-US"}
+            gender={gender}
+          />
+        </TabsContent>
+
         <TabsContent value="image" className="mt-4 space-y-3">
           <ImageTranslator
             targetLangName={targetMeta?.name ?? targetLang}
