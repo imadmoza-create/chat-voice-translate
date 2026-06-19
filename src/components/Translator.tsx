@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Sparkles,
+  Square, Sparkles, MessageCircle,
 } from "lucide-react";
 
 type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
@@ -137,9 +137,10 @@ export function Translator() {
       </div>
 
       <Tabs defaultValue="text" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl">
+        <TabsList className="grid w-full grid-cols-4 rounded-xl">
           <TabsTrigger value="text" className="rounded-lg gap-1.5"><LangIcon className="size-4" /> نص</TabsTrigger>
           <TabsTrigger value="voice" className="rounded-lg gap-1.5"><Mic className="size-4" /> صوت</TabsTrigger>
+          <TabsTrigger value="speaker" className="rounded-lg gap-1.5"><MessageCircle className="size-4" /> متحدّث</TabsTrigger>
           <TabsTrigger value="image" className="rounded-lg gap-1.5"><Camera className="size-4" /> صورة</TabsTrigger>
         </TabsList>
 
@@ -172,6 +173,14 @@ export function Translator() {
           <Button onClick={() => runText("voice")} disabled={busy || !text.trim()} className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> ترجم الكلام</>}
           </Button>
+        </TabsContent>
+
+        <TabsContent value="speaker" className="mt-4">
+          <SpeakerMode
+            targetLangName={targetMeta?.name ?? targetLang}
+            targetBcp47={targetMeta?.bcp47 ?? "en-US"}
+            gender={gender}
+          />
         </TabsContent>
 
         <TabsContent value="image" className="mt-4 space-y-3">
@@ -239,6 +248,96 @@ export function Translator() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+type Turn = { source: string; translation: string };
+
+// وضع المتحدّث الحر: استماع مستمر، يترجم كل جملة وينطقها تلقائياً.
+function SpeakerMode({
+  targetLangName, targetBcp47, gender,
+}: { targetLangName: string; targetBcp47: string; gender: VoiceGender }) {
+  const doText = useServerFn(translateText);
+  const [active, setActive] = useState(false);
+  const [interim, setInterim] = useState("");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [srcLang, setSrcLang] = useState("ar-SA");
+  const recRef = useRef<any>(null);
+  const activeRef = useRef(false);
+
+  useEffect(() => () => { activeRef.current = false; recRef.current?.stop?.(); stopSpeaking(); }, []);
+
+  const handle = async (final: string) => {
+    const t = final.trim();
+    if (!t) return;
+    try {
+      const r = (await doText({ data: { text: t, targetLang: targetLangName } })) as Result;
+      setTurns((p) => [...p, { source: t, translation: r.translation }]);
+      speak(r.translation, targetBcp47, gender);
+    } catch {
+      toast.error("تعذّرت الترجمة.");
+    }
+  };
+
+  const start = () => {
+    if (!isSpeechRecognitionSupported()) { toast.error("الإدخال الصوتي غير مدعوم في هذا المتصفح."); return; }
+    const SR = getSpeechRecognition();
+    const rec = new SR();
+    rec.lang = srcLang;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e: any) => {
+      let interimText = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (res.isFinal) handle(res[0].transcript);
+        else interimText += res[0].transcript;
+      }
+      setInterim(interimText);
+    };
+    rec.onerror = () => {};
+    rec.onend = () => { if (activeRef.current) { try { rec.start(); } catch {} } else setActive(false); };
+    recRef.current = rec;
+    activeRef.current = true;
+    setActive(true);
+    rec.start();
+  };
+
+  const stop = () => { activeRef.current = false; recRef.current?.stop?.(); setActive(false); setInterim(""); };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 rounded-2xl border bg-card p-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">لغتك:</span>
+          <select value={srcLang} onChange={(e) => setSrcLang(e.target.value)} disabled={active} className="rounded-xl border bg-background px-2 py-1">
+            {LANGUAGES.map((l) => <option key={l.code} value={l.bcp47}>{l.nameAr}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={active ? stop : start}
+          className={`flex size-14 items-center justify-center rounded-full text-primary-foreground shadow-glow transition-transform hover:scale-105 ${active ? "gradient-accent animate-pulse" : "gradient-primary"}`}
+        >
+          {active ? <Square className="size-6" /> : <Mic className="size-6" />}
+        </button>
+      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        {active ? "تحدّث بحرية... سيُترجم كلامك وينطق فوراً" : "اضغط الميكروفون وابدأ التحدّث بشكل مستمر"}
+      </p>
+      {interim && <div className="rounded-xl border border-dashed bg-muted/40 p-2 text-sm text-muted-foreground">{interim}</div>}
+
+      <div className="space-y-2">
+        {[...turns].reverse().map((t, i) => (
+          <div key={turns.length - i} className="rounded-2xl border bg-card p-3">
+            <p className="text-sm text-muted-foreground" dir="auto">{t.source}</p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="font-semibold" dir="auto">{t.translation}</p>
+              <button onClick={() => speak(t.translation, targetBcp47, gender)} className="text-muted-foreground hover:text-foreground"><Volume2 className="size-4" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
