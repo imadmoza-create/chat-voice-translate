@@ -158,16 +158,34 @@ export function ImageTranslator({
         className="hidden"
         onChange={(e) => e.target.files && addFiles(e.target.files)}
       />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => e.target.files && addFiles(e.target.files)}
+      />
 
       {items.length === 0 ? (
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card p-10 transition-colors hover:border-primary"
-        >
-          <Upload className="size-8 text-primary" />
-          <span className="font-medium">اختر صورة أو عدة صور تحتوي على نص</span>
-          <span className="text-xs text-muted-foreground">دقة عالية للاستخراج • حتى 6 صور</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => cameraRef.current?.click()}
+            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card p-8 transition-colors hover:border-primary"
+          >
+            <CameraIcon className="size-8 text-primary" />
+            <span className="font-medium">التقاط بالكاميرا</span>
+            <span className="text-xs text-muted-foreground">صوّر نصاً مباشرة</span>
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card p-8 transition-colors hover:border-primary"
+          >
+            <Upload className="size-8 text-primary" />
+            <span className="font-medium">اختر صورة/صور</span>
+            <span className="text-xs text-muted-foreground">حتى 6 صور</span>
+          </button>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-2">
