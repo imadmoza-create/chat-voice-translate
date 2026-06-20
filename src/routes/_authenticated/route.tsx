@@ -66,6 +66,11 @@ function AuthenticatedLayout() {
                 <History className="size-4" /> السجل
               </Button>
             </Link>
+            <Link to="/settings">
+              <Button variant={pathname === "/settings" ? "secondary" : "ghost"} size="icon" className="rounded-xl" title="الإعدادات">
+                <Settings className="size-4" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" className="rounded-xl" onClick={handleSignOut} title="تسجيل الخروج">
               <LogOut className="size-4" />
             </Button>
