@@ -373,26 +373,38 @@ function Quiz({
     );
   }
 
+  const answered = picked !== null;
+  const isRight = answered && picked === current.correct;
+  const progress = Math.round(((idx) / queue.length) * 100);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between text-sm font-medium">
         <span>سؤال {idx + 1} / {queue.length}</span>
         <span className="text-primary">النتيجة: {score}</span>
       </div>
-      <div className="rounded-2xl border bg-card p-6 text-center space-y-2">
-        <div className="text-5xl">{current.item.emoji}</div>
-        <div className="text-2xl font-bold">{current.item.ar}</div>
-        <div className="text-xs text-muted-foreground">اختر الترجمة الصحيحة</div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full gradient-primary transition-all duration-300" style={{ width: `${progress}%` }} />
       </div>
+
+      {/* بطاقة السؤال — الصورة تتغير مع كل كلمة */}
+      <div className={`rounded-3xl border p-6 text-center transition-colors ${answered ? (isRight ? "border-primary bg-primary/5" : "border-destructive bg-destructive/5") : "bg-card"}`}>
+        <div key={current.item.emoji + idx} className="mx-auto mb-2 flex size-24 items-center justify-center rounded-full bg-muted text-6xl animate-in zoom-in-50 duration-300">
+          {current.item.emoji}
+        </div>
+        <div className="text-2xl font-bold">{current.item.ar}</div>
+        <div className="text-xs text-muted-foreground">{answered ? "" : "اختر الترجمة الصحيحة"}</div>
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {current.options.map((opt) => {
           const isCorrect = opt === current.correct;
-          const show = picked !== null;
-          const state = show && isCorrect ? "correct" : show && opt === picked ? "wrong" : "idle";
+          const state = answered && isCorrect ? "correct" : answered && opt === picked ? "wrong" : "idle";
           return (
             <button
               key={opt}
               onClick={() => choose(opt)}
+              disabled={answered}
               dir="auto"
               className={`flex items-center justify-between rounded-xl border px-4 py-3 text-start font-medium transition-colors ${
                 state === "correct" ? "border-primary bg-primary/10" :
@@ -406,9 +418,33 @@ function Quiz({
           );
         })}
       </div>
-      {picked !== null && (
+
+      {/* لوحة الشرح بعد الإجابة */}
+      {answered && (
+        <div className="space-y-3 rounded-2xl border bg-card p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className={`flex items-center gap-2 font-bold ${isRight ? "text-primary" : "text-destructive"}`}>
+            {isRight ? <><Check className="size-5" /> أحسنت! إجابة صحيحة</> : <><X className="size-5" /> ليست صحيحة، تعلّمها الآن</>}
+          </div>
+          <div className="flex items-center justify-between rounded-xl bg-muted/60 p-3">
+            <div dir="auto">
+              <div className="text-sm text-muted-foreground">{current.item.ar} {current.item.emoji}</div>
+              <div className="text-lg font-bold">{current.correct}</div>
+            </div>
+            <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={() => speak(current.correct, bcp47, voiceGender)}>
+              <Volume2 className="size-4" /> استمع
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            «{current.item.ar}» تعني <span className="font-medium text-foreground" dir="auto">{current.correct}</span> بـ{langByCode(lang)?.nameAr ?? lang}.
+            {!isRight && " ستظهر هذه الكلمة مجدداً لتثبيتها."}
+          </p>
+        </div>
+      )}
+
+      {answered && (
         <Button onClick={next} className="w-full rounded-xl gradient-primary text-primary-foreground">التالي</Button>
       )}
     </div>
   );
+
 }
