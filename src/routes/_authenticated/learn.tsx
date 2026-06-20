@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { speak, type VoiceGender } from "@/lib/speech";
+import { useAppLang, useUserGender } from "@/lib/prefs";
 import { WORD_CATEGORIES, PRONOUNS, type LearnItem } from "@/lib/learn";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { translateBatch, translateText, type Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
-import { Volume2, GraduationCap, Loader2, Trophy, RotateCcw, Check, X, Zap } from "lucide-react";
+import { Volume2, GraduationCap, Loader2, Trophy, RotateCcw, Check, X, Zap, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/learn")({
   head: () => ({ meta: [{ title: "تعلّم الكلمات والضمائر — ترجملي" }] }),
@@ -16,7 +17,6 @@ export const Route = createFileRoute("/_authenticated/learn")({
 });
 
 type Tab = "words" | "pronouns" | "verbs" | "mine" | "quiz";
-type UserGender = "male" | "female";
 
 // عرض نص العنصر باللغة الهدف
 function itemText(item: LearnItem, lang: string, cache: Record<string, string>) {
@@ -46,8 +46,8 @@ function LearnPage() {
   const { user } = useAuth();
   const runBatch = useServerFn(translateBatch);
   const [tab, setTab] = useState<Tab>("words");
-  const [userGender, setUserGender] = useState<UserGender>("male");
-  const [lang, setLang] = useState("en");
+  const [userGender] = useUserGender();
+  const [lang] = useAppLang();
   const [activeCat, setActiveCat] = useState(WORD_CATEGORIES[0].id);
   const [mine, setMine] = useState<LearnItem[]>([]);
   const [loadingMine, setLoadingMine] = useState(false);
@@ -134,29 +134,20 @@ function LearnPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">اللغة:</span>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-            className="rounded-xl border bg-card px-3 py-1.5 font-medium"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>{l.nameAr}</option>
-            ))}
-          </select>
+          <span className="font-bold">{langByCode(lang)?.nameAr ?? lang}</span>
           {translating && <Loader2 className="size-4 animate-spin text-primary" />}
+          <span className="text-xs text-muted-foreground">· صوت {voiceGender === "female" ? "مؤنث" : "مذكر"}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">جنسك:</span>
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-            <button onClick={() => setUserGender("male")} className={`rounded-lg px-3 py-1 ${userGender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>ذكر</button>
-            <button onClick={() => setUserGender("female")} className={`rounded-lg px-3 py-1 ${userGender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>أنثى</button>
-          </div>
-          <span className="text-xs text-muted-foreground">(صوت {voiceGender === "female" ? "مؤنث" : "مذكر"})</span>
-        </div>
+        <Link to="/settings">
+          <Button variant="ghost" size="sm" className="rounded-xl gap-1.5">
+            <Settings className="size-4" /> تغيير اللغة
+          </Button>
+        </Link>
       </div>
+
 
       {tab === "words" && (
         <>
@@ -382,26 +373,38 @@ function Quiz({
     );
   }
 
+  const answered = picked !== null;
+  const isRight = answered && picked === current.correct;
+  const progress = Math.round(((idx) / queue.length) * 100);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between text-sm font-medium">
         <span>سؤال {idx + 1} / {queue.length}</span>
         <span className="text-primary">النتيجة: {score}</span>
       </div>
-      <div className="rounded-2xl border bg-card p-6 text-center space-y-2">
-        <div className="text-5xl">{current.item.emoji}</div>
-        <div className="text-2xl font-bold">{current.item.ar}</div>
-        <div className="text-xs text-muted-foreground">اختر الترجمة الصحيحة</div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full gradient-primary transition-all duration-300" style={{ width: `${progress}%` }} />
       </div>
+
+      {/* بطاقة السؤال — الصورة تتغير مع كل كلمة */}
+      <div className={`rounded-3xl border p-6 text-center transition-colors ${answered ? (isRight ? "border-primary bg-primary/5" : "border-destructive bg-destructive/5") : "bg-card"}`}>
+        <div key={current.item.emoji + idx} className="mx-auto mb-2 flex size-24 items-center justify-center rounded-full bg-muted text-6xl animate-in zoom-in-50 duration-300">
+          {current.item.emoji}
+        </div>
+        <div className="text-2xl font-bold">{current.item.ar}</div>
+        <div className="text-xs text-muted-foreground">{answered ? "" : "اختر الترجمة الصحيحة"}</div>
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {current.options.map((opt) => {
           const isCorrect = opt === current.correct;
-          const show = picked !== null;
-          const state = show && isCorrect ? "correct" : show && opt === picked ? "wrong" : "idle";
+          const state = answered && isCorrect ? "correct" : answered && opt === picked ? "wrong" : "idle";
           return (
             <button
               key={opt}
               onClick={() => choose(opt)}
+              disabled={answered}
               dir="auto"
               className={`flex items-center justify-between rounded-xl border px-4 py-3 text-start font-medium transition-colors ${
                 state === "correct" ? "border-primary bg-primary/10" :
@@ -415,9 +418,33 @@ function Quiz({
           );
         })}
       </div>
-      {picked !== null && (
+
+      {/* لوحة الشرح بعد الإجابة */}
+      {answered && (
+        <div className="space-y-3 rounded-2xl border bg-card p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className={`flex items-center gap-2 font-bold ${isRight ? "text-primary" : "text-destructive"}`}>
+            {isRight ? <><Check className="size-5" /> أحسنت! إجابة صحيحة</> : <><X className="size-5" /> ليست صحيحة، تعلّمها الآن</>}
+          </div>
+          <div className="flex items-center justify-between rounded-xl bg-muted/60 p-3">
+            <div dir="auto">
+              <div className="text-sm text-muted-foreground">{current.item.ar} {current.item.emoji}</div>
+              <div className="text-lg font-bold">{current.correct}</div>
+            </div>
+            <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={() => speak(current.correct, bcp47, voiceGender)}>
+              <Volume2 className="size-4" /> استمع
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            «{current.item.ar}» تعني <span className="font-medium text-foreground" dir="auto">{current.correct}</span> بـ{langByCode(lang)?.nameAr ?? lang}.
+            {!isRight && " ستظهر هذه الكلمة مجدداً لتثبيتها."}
+          </p>
+        </div>
+      )}
+
+      {answered && (
         <Button onClick={next} className="w-full rounded-xl gradient-primary text-primary-foreground">التالي</Button>
       )}
     </div>
   );
+
 }
