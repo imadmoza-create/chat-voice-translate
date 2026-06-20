@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_authenticated/learn")({
 });
 
 type Tab = "words" | "pronouns" | "verbs" | "mine" | "quiz";
-type UserGender = "male" | "female";
 
 // عرض نص العنصر باللغة الهدف
 function itemText(item: LearnItem, lang: string, cache: Record<string, string>) {
