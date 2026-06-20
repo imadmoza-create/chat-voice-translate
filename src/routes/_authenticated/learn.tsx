@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { useAppLang, useUserGender } from "@/lib/prefs";
 import { WORD_CATEGORIES, PRONOUNS, type LearnItem } from "@/lib/learn";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { translateBatch, translateText, type Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
 import { Volume2, GraduationCap, Loader2, Trophy, RotateCcw, Check, X, Zap, Settings } from "lucide-react";
