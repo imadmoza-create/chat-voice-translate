@@ -46,8 +46,8 @@ function LearnPage() {
   const { user } = useAuth();
   const runBatch = useServerFn(translateBatch);
   const [tab, setTab] = useState<Tab>("words");
-  const [userGender, setUserGender] = useState<UserGender>("male");
-  const [lang, setLang] = useState("en");
+  const [userGender] = useUserGender();
+  const [lang] = useAppLang();
   const [activeCat, setActiveCat] = useState(WORD_CATEGORIES[0].id);
   const [mine, setMine] = useState<LearnItem[]>([]);
   const [loadingMine, setLoadingMine] = useState(false);
