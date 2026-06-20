@@ -134,29 +134,20 @@ function LearnPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">اللغة:</span>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-            className="rounded-xl border bg-card px-3 py-1.5 font-medium"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>{l.nameAr}</option>
-            ))}
-          </select>
+          <span className="font-bold">{langByCode(lang)?.nameAr ?? lang}</span>
           {translating && <Loader2 className="size-4 animate-spin text-primary" />}
+          <span className="text-xs text-muted-foreground">· صوت {voiceGender === "female" ? "مؤنث" : "مذكر"}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">جنسك:</span>
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-            <button onClick={() => setUserGender("male")} className={`rounded-lg px-3 py-1 ${userGender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>ذكر</button>
-            <button onClick={() => setUserGender("female")} className={`rounded-lg px-3 py-1 ${userGender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>أنثى</button>
-          </div>
-          <span className="text-xs text-muted-foreground">(صوت {voiceGender === "female" ? "مؤنث" : "مذكر"})</span>
-        </div>
+        <Link to="/settings">
+          <Button variant="ghost" size="sm" className="rounded-xl gap-1.5">
+            <Settings className="size-4" /> تغيير اللغة
+          </Button>
+        </Link>
       </div>
+
 
       {tab === "words" && (
         <>
