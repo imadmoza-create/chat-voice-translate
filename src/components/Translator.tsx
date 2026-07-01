@@ -201,16 +201,6 @@ export function Translator() {
             <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
               اللغة المكتشفة: {result.detectedLang || "غير معروفة"}
             </span>
-            <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-              <button
-                onClick={() => setGender("female")}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${gender === "female" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
-              >أنثى</button>
-              <button
-                onClick={() => setGender("male")}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${gender === "male" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
-              >ذكر</button>
-            </div>
           </div>
 
           <p className="text-lg font-semibold leading-relaxed">{result.translation}</p>
