@@ -141,10 +141,9 @@ function SettingsPage() {
           variant="secondary"
           size="sm"
           className="mt-2 gap-1.5 rounded-xl"
-          disabled={lang === deviceLang}
-          onClick={() => setLang(deviceLang)}
+          onClick={useDeviceLang}
         >
-          <Smartphone className="size-4" /> استخدام لغة الهاتف
+          <Smartphone className="size-4" /> استخدم لغة الهاتف{lang === deviceLang ? " ✓" : ""}
         </Button>
       </div>
 
