@@ -30,7 +30,9 @@ export function Translator() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
-  const [gender, setGender] = useState<VoiceGender>("female");
+  const [userGender] = useUserGender();
+  // الصوت دائماً عكس جنس المستخدم — يُضبط من الإعدادات
+  const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
