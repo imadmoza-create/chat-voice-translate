@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap } from "lucide-react";
+import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap, Mail } from "lucide-react";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { useAppLang, useUserGender, detectDeviceLang } from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "الإعدادات — ترجملي" }] }),
