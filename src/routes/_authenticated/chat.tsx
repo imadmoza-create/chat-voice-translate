@@ -28,7 +28,9 @@ function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [listening, setListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
-  const [gender, setGender] = useState<VoiceGender>("female");
+  const [userGender] = useUserGender();
+  // الصوت عكس جنس المستخدم — يُضبط من الإعدادات
+  const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
 
   const recRef = useRef<any>(null);
