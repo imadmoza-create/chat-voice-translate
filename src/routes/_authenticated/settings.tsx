@@ -85,23 +85,6 @@ function SettingsPage() {
         <h1 className="text-2xl font-bold">الإعدادات</h1>
       </div>
 
-      {/* لغة التعلّم */}
-      <div className="space-y-2 rounded-2xl border bg-card p-5">
-        <div className="flex items-center gap-2 font-bold">
-          <Languages className="size-5 text-primary" /> لغة التعلّم
-        </div>
-        <p className="text-sm text-muted-foreground">
-          هذه اللغة تُستخدم في كل أقسام التطبيق (الكلمات، الأفعال، الاختبار).
-          اللغة الأساسية الافتراضية مأخوذة من لغة هاتفك:{" "}
-          <span className="font-medium text-foreground">{langByCode(deviceLang)?.nameAr ?? deviceLang}</span>
-        </p>
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value)}
-          className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
       {/* البريد الإلكتروني */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2 font-bold">
