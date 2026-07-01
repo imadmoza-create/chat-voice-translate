@@ -112,10 +112,6 @@ function ChatPage() {
           <h1 className="text-2xl font-bold">المساعد الذكي</h1>
         </div>
         <div className="flex items-center gap-1">
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1 text-xs">
-            <button onClick={() => setGender("female")} className={`rounded-lg px-2 py-1 ${gender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>مؤنث</button>
-            <button onClick={() => setGender("male")} className={`rounded-lg px-2 py-1 ${gender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>مذكر</button>
-          </div>
           <Button variant="ghost" size="icon" className="rounded-xl" title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"} onClick={() => { setAutoSpeak((v) => !v); stopSpeaking(); }}>
             {autoSpeak ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
