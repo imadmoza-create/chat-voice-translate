@@ -81,13 +81,6 @@ function AcademyPage() {
             {LANGUAGES.filter((l) => l.code !== "ar").map((l) => <option key={l.code} value={l.code}>{l.nameAr}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">جنسك:</span>
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-            <button onClick={() => setUserGender("male")} className={`rounded-lg px-3 py-1 ${userGender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>ذكر</button>
-            <button onClick={() => setUserGender("female")} className={`rounded-lg px-3 py-1 ${userGender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>أنثى</button>
-          </div>
-        </div>
       </div>
 
       {/* شريط التقدّم */}
