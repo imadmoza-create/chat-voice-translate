@@ -24,10 +24,33 @@ const PREVIEW_SAMPLES = [
 ];
 
 function SettingsPage() {
+  const { user } = useAuth();
   const [lang, setLang] = useAppLang();
   const [gender, setGender] = useUserGender();
   const deviceLang = detectDeviceLang();
   const voiceGender: VoiceGender = gender === "male" ? "female" : "male";
+
+  const [newEmail, setNewEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  async function changeEmail() {
+    const email = newEmail.trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      toast.error("أدخل بريداً إلكترونياً صحيحاً.");
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
+      toast.success("تم إرسال رابط التأكيد إلى بريدك الجديد. افتح الرابط لإتمام التغيير.");
+      setNewEmail("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "تعذّر تغيير البريد الإلكتروني.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
 
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
