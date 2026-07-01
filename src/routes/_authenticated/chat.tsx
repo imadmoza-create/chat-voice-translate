@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { useServerFn } from "@tanstack/react-start";
 import { getChatMessages, sendChatMessage, clearChat, type ChatMessage } from "@/lib/chat.functions";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
+import { useUserGender } from "@/lib/prefs";
 import { Button } from "@/components/ui/button";
 import { Bot, Send, Mic, MicOff, Volume2, VolumeX, Trash2, Loader2 } from "lucide-react";
 
