@@ -102,6 +102,54 @@ function SettingsPage() {
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
+      {/* البريد الإلكتروني */}
+      <div className="space-y-2 rounded-2xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-bold">
+          <Mail className="size-5 text-primary" /> البريد الإلكتروني
+        </div>
+        <p className="text-sm text-muted-foreground">
+          بريدك الحالي:{" "}
+          <span className="font-medium text-foreground">{user?.email ?? "غير معروف"}</span>
+        </p>
+        <input
+          type="email"
+          dir="ltr"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          placeholder="البريد الإلكتروني الجديد"
+          className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+        />
+        <Button
+          size="sm"
+          className="mt-2 gap-1.5 rounded-xl"
+          disabled={emailBusy || !newEmail.trim()}
+          onClick={changeEmail}
+        >
+          {emailBusy ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
+          تغيير البريد
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          سيصلك رابط تأكيد على البريد الجديد لإتمام التغيير.
+        </p>
+      </div>
+
+      {/* لغة التعلّم */}
+      <div className="space-y-2 rounded-2xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-bold">
+          <Languages className="size-5 text-primary" /> لغة التعلّم
+        </div>
+        <p className="text-sm text-muted-foreground">
+          هذه اللغة تُستخدم في كل أقسام التطبيق (الكلمات، الأفعال، الاختبار).
+          اللغة الأساسية الافتراضية مأخوذة من لغة هاتفك:{" "}
+          <span className="font-medium text-foreground">{langByCode(deviceLang)?.nameAr ?? deviceLang}</span>
+        </p>
+        <select
+          value={lang}
+          onChange={(e) => setLang(e.target.value)}
+          className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
               {l.nameAr} {l.code === deviceLang ? "(لغة الهاتف)" : ""}
             </option>
           ))}
