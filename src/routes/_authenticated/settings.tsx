@@ -52,6 +52,27 @@ function SettingsPage() {
     }
   }
 
+  async function useDeviceLang() {
+    setLang(deviceLang);
+    const devMeta = langByCode(deviceLang);
+    toast.success(`تم ضبط اللغة الأساسية على لغة الهاتف: ${devMeta?.nameAr ?? deviceLang}`);
+    // تحديث معاينة الترجمة فوراً باللغة الجديدة
+    setLoading(true);
+    setPreview("");
+    try {
+      const res = await runTranslate({
+        data: { text: PREVIEW_SAMPLES[sampleIdx].ar, targetLang: devMeta?.name ?? "English" },
+      });
+      const text = res.translation || "";
+      setPreview(text);
+      if (text) speak(text, devMeta?.bcp47 ?? "en-US", voiceGender);
+    } catch {
+      toast.error("تعذّر تحديث المعاينة.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
   const [preview, setPreview] = useState<string>("");
@@ -141,10 +162,9 @@ function SettingsPage() {
           variant="secondary"
           size="sm"
           className="mt-2 gap-1.5 rounded-xl"
-          disabled={lang === deviceLang}
-          onClick={() => setLang(deviceLang)}
+          onClick={useDeviceLang}
         >
-          <Smartphone className="size-4" /> استخدام لغة الهاتف
+          <Smartphone className="size-4" /> استخدم لغة الهاتف{lang === deviceLang ? " ✓" : ""}
         </Button>
       </div>
 
