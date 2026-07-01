@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
+import { useUserGender } from "@/lib/prefs";
 import {
   generateLesson, generateVerbPack, generateExercise, generateLevelTest,
   placementTest, generateDailyPlan, generateDialogue, getProgress, updateProgress,
@@ -33,7 +34,7 @@ function aiError(e: any) {
 
 function AcademyPage() {
   const [lang, setLang] = useState("en");
-  const [userGender, setUserGender] = useState<VoiceGender>("male");
+  const [userGender] = useUserGender();
   const voiceGender: VoiceGender = userGender === "male" ? "female" : "male";
   const langName = langByCode(lang)?.name ?? "English";
   const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
@@ -79,13 +80,6 @@ function AcademyPage() {
           <select value={lang} onChange={(e) => { setLang(e.target.value); setView("home"); }} className="rounded-xl border bg-card px-3 py-1.5 font-medium">
             {LANGUAGES.filter((l) => l.code !== "ar").map((l) => <option key={l.code} value={l.code}>{l.nameAr}</option>)}
           </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">جنسك:</span>
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-            <button onClick={() => setUserGender("male")} className={`rounded-lg px-3 py-1 ${userGender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>ذكر</button>
-            <button onClick={() => setUserGender("female")} className={`rounded-lg px-3 py-1 ${userGender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>أنثى</button>
-          </div>
         </div>
       </div>
 

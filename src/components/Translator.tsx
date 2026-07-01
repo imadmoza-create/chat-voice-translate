@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
+import { useUserGender } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,9 @@ export function Translator() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
-  const [gender, setGender] = useState<VoiceGender>("female");
+  const [userGender] = useUserGender();
+  // الصوت دائماً عكس جنس المستخدم — يُضبط من الإعدادات
+  const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -198,16 +201,6 @@ export function Translator() {
             <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
               اللغة المكتشفة: {result.detectedLang || "غير معروفة"}
             </span>
-            <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-              <button
-                onClick={() => setGender("female")}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${gender === "female" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
-              >أنثى</button>
-              <button
-                onClick={() => setGender("male")}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${gender === "male" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
-              >ذكر</button>
-            </div>
           </div>
 
           <p className="text-lg font-semibold leading-relaxed">{result.translation}</p>

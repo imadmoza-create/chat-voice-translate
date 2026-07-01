@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { useServerFn } from "@tanstack/react-start";
 import { getChatMessages, sendChatMessage, clearChat, type ChatMessage } from "@/lib/chat.functions";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
+import { useUserGender } from "@/lib/prefs";
 import { Button } from "@/components/ui/button";
 import { Bot, Send, Mic, MicOff, Volume2, VolumeX, Trash2, Loader2 } from "lucide-react";
 
@@ -27,7 +28,9 @@ function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [listening, setListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
-  const [gender, setGender] = useState<VoiceGender>("female");
+  const [userGender] = useUserGender();
+  // الصوت عكس جنس المستخدم — يُضبط من الإعدادات
+  const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
 
   const recRef = useRef<any>(null);
@@ -109,10 +112,6 @@ function ChatPage() {
           <h1 className="text-2xl font-bold">المساعد الذكي</h1>
         </div>
         <div className="flex items-center gap-1">
-          <div className="flex items-center gap-1 rounded-xl bg-muted p-1 text-xs">
-            <button onClick={() => setGender("female")} className={`rounded-lg px-2 py-1 ${gender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>مؤنث</button>
-            <button onClick={() => setGender("male")} className={`rounded-lg px-2 py-1 ${gender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>مذكر</button>
-          </div>
           <Button variant="ghost" size="icon" className="rounded-xl" title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"} onClick={() => { setAutoSpeak((v) => !v); stopSpeaking(); }}>
             {autoSpeak ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>

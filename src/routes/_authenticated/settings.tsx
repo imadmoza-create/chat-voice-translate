@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap } from "lucide-react";
+import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap, Mail } from "lucide-react";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { useAppLang, useUserGender, detectDeviceLang } from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "الإعدادات — ترجملي" }] }),
@@ -21,10 +24,33 @@ const PREVIEW_SAMPLES = [
 ];
 
 function SettingsPage() {
+  const { user } = useAuth();
   const [lang, setLang] = useAppLang();
   const [gender, setGender] = useUserGender();
   const deviceLang = detectDeviceLang();
   const voiceGender: VoiceGender = gender === "male" ? "female" : "male";
+
+  const [newEmail, setNewEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  async function changeEmail() {
+    const email = newEmail.trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      toast.error("أدخل بريداً إلكترونياً صحيحاً.");
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
+      toast.success("تم إرسال رابط التأكيد إلى بريدك الجديد. افتح الرابط لإتمام التغيير.");
+      setNewEmail("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "تعذّر تغيير البريد الإلكتروني.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
 
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
@@ -57,6 +83,37 @@ function SettingsPage() {
       <div className="flex items-center gap-2">
         <SettingsIcon className="size-6 text-primary" />
         <h1 className="text-2xl font-bold">الإعدادات</h1>
+      </div>
+
+      {/* البريد الإلكتروني */}
+      <div className="space-y-2 rounded-2xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-bold">
+          <Mail className="size-5 text-primary" /> البريد الإلكتروني
+        </div>
+        <p className="text-sm text-muted-foreground">
+          بريدك الحالي:{" "}
+          <span className="font-medium text-foreground">{user?.email ?? "غير معروف"}</span>
+        </p>
+        <input
+          type="email"
+          dir="ltr"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          placeholder="البريد الإلكتروني الجديد"
+          className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+        />
+        <Button
+          size="sm"
+          className="mt-2 gap-1.5 rounded-xl"
+          disabled={emailBusy || !newEmail.trim()}
+          onClick={changeEmail}
+        >
+          {emailBusy ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
+          تغيير البريد
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          سيصلك رابط تأكيد على البريد الجديد لإتمام التغيير.
+        </p>
       </div>
 
       {/* لغة التعلّم */}
