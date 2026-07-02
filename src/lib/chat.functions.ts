@@ -3,14 +3,53 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const STT_URL = "https://ai.gateway.lovable.dev/v1/audio/transcriptions";
 const MODEL = "google/gemini-3-flash-preview";
+const STT_MODEL = "openai/gpt-4o-mini-transcribe";
+
+const VALID_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 export type ChatMessage = { id: string; role: "user" | "assistant"; content: string; created_at: string };
 
-const SYSTEM_PROMPT = `أنت "مساعد ترجملي"، مساعد ذكي ودود يجمع بين مهمتين:
-1) مدرّس لغات: تصحّح أخطاء المستخدم، تشرح القواعد ببساطة، تعطي أمثلة، وتدرّب على المحادثة بأي لغة يطلبها.
-2) مساعد عام: تجيب على الأسئلة العامة وتساعد في الترجمة والحوار.
-أجب بنفس لغة المستخدم. كن مختصراً وواضحاً واستخدم تنسيق ماركداون عند الحاجة. عند تصحيح جملة، اعرض النسخة الصحيحة ثم اشرح السبب بإيجاز.`;
+export type Correction = { corrected: string; explanation: string };
+
+export type TutorReply = {
+  reply: string;
+  translation: string;
+  correction: Correction | null;
+  level: string;
+  xp: number;
+};
+
+function buildSystemPrompt(langName: string, level: string) {
+  return `أنت "مدرّس ${langName} الذكي"، مساعد محادثة تعليمي متقدّم للطالب الناطق بالعربية.
+مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).
+
+مهامك في كل رد:
+1) تحدّث مع الطالب بلغة ${langName} بمستوى مناسب لـ ${level} — جُمل قصيرة وواضحة للمبتدئين، وأطول وأعقد للمستويات الأعلى.
+2) صحّح أخطاء الطالب في القواعد والكلمات وطريقة التعبير بلطف، واشرح الخطأ بالعربية بشكل مبسّط.
+3) استمر في الحوار: اطرح سؤالاً أو تمريناً بسيطاً ليتحدّث الطالب أكثر.
+4) تذكّر ما قاله الطالب سابقاً في هذه المحادثة وابنِ عليه.
+5) قيّم مستوى الطالب باستمرار وعدّله (level) صعوداً أو نزولاً حسب أدائه.
+6) امنح نقاط خبرة (xp) بين 3 و15 حسب جودة مشاركة الطالب.
+
+أجب حصراً بكائن JSON صارم بدون أي نص إضافي أو Markdown، بالشكل التالي:
+{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"corrected":"<الجملة الصحيحة بلغة ${langName}>","explanation":"<شرح الخطأ بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}`;
+}
+
+function extractJson(content: string): any {
+  let raw = content.trim();
+  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) raw = fence[1].trim();
+  const s = raw.indexOf("{");
+  const e = raw.lastIndexOf("}");
+  if (s !== -1 && e !== -1) raw = raw.slice(s, e + 1);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { reply: content.trim(), translation: "", correction: null };
+  }
+}
 
 export const getChatMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -38,27 +77,44 @@ export const clearChat = createServerFn({ method: "POST" })
 
 export const sendChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ text: z.string().min(1).max(4000) }).parse(input))
-  .handler(async ({ data, context }): Promise<{ reply: string }> => {
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        text: z.string().min(1).max(4000),
+        targetLang: z.string().min(2).max(10),
+        targetLangName: z.string().min(2).max(40),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<TutorReply> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    // احفظ رسالة المستخدم
+    // مستوى الطالب الحالي لهذه اللغة
+    const { data: prog } = await context.supabase
+      .from("learning_progress")
+      .select("level")
+      .eq("user_id", context.userId)
+      .eq("target_lang", data.targetLang)
+      .maybeSingle();
+    const curLevel = prog?.level ?? "A1";
+
+    // احفظ رسالة الطالب
     await context.supabase
       .from("chat_messages")
       .insert({ user_id: context.userId, role: "user", content: data.text });
 
-    // اجلب آخر سجل للمحادثة كسياق
+    // سياق المحادثة
     const { data: history } = await context.supabase
       .from("chat_messages")
       .select("role, content")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(20);
-
     const ordered = (history ?? []).reverse();
+
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel) },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -71,11 +127,93 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (res.status === 402) throw new Error("CREDITS");
     if (!res.ok) throw new Error(`AI error ${res.status}`);
     const json = await res.json();
-    const reply = String(json?.choices?.[0]?.message?.content ?? "").trim() || "عذراً، لم أتمكن من الرد.";
+    const obj = extractJson(String(json?.choices?.[0]?.message?.content ?? ""));
 
+    const reply = String(obj?.reply ?? "").trim() || "…";
+    const translation = String(obj?.translation ?? "").trim();
+    const correction =
+      obj?.correction && typeof obj.correction === "object" && obj.correction.corrected
+        ? {
+            corrected: String(obj.correction.corrected),
+            explanation: String(obj.correction.explanation ?? ""),
+          }
+        : null;
+    const level = VALID_LEVELS.includes(obj?.level) ? String(obj.level) : curLevel;
+    const xp = Math.max(0, Math.min(20, Number(obj?.xp) || 5));
+
+    // احفظ ردّ المدرّس
     await context.supabase
       .from("chat_messages")
       .insert({ user_id: context.userId, role: "assistant", content: reply });
 
-    return { reply };
+    // حدّث تقدّم الطالب (المستوى + الخبرة)
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: cur } = await context.supabase
+      .from("learning_progress")
+      .select("xp, streak, last_active_date")
+      .eq("user_id", context.userId)
+      .eq("target_lang", data.targetLang)
+      .maybeSingle();
+    let streak = cur?.streak ?? 0;
+    if (cur?.last_active_date !== today) {
+      const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      streak = cur?.last_active_date === y ? streak + 1 : 1;
+    }
+    await context.supabase.from("learning_progress").upsert(
+      {
+        user_id: context.userId,
+        target_lang: data.targetLang,
+        level,
+        xp: (cur?.xp ?? 0) + xp,
+        streak,
+        last_active_date: today,
+      },
+      { onConflict: "user_id,target_lang" },
+    );
+
+    return { reply, translation, correction, level, xp };
+  });
+
+// ===================== تحويل الصوت إلى نص =====================
+export const transcribeAudio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        audio: z.string().min(10).max(12_000_000), // data URL
+        mime: z.string().max(60).optional(),
+        lang: z.string().max(10).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ text: string }> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    const base64 = data.audio.includes(",") ? data.audio.split(",")[1] : data.audio;
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+    const mime = (data.mime || "audio/webm").split(";")[0];
+    const ext =
+      ({ "audio/webm": "webm", "audio/mp4": "mp4", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg" } as Record<string, string>)[
+        mime
+      ] ?? "webm";
+
+    const form = new FormData();
+    form.append("model", STT_MODEL);
+    form.append("file", new Blob([bytes], { type: mime }), `recording.${ext}`);
+    if (data.lang) form.append("language", data.lang);
+
+    const res = await fetch(STT_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    });
+    if (res.status === 429) throw new Error("RATE_LIMIT");
+    if (res.status === 402) throw new Error("CREDITS");
+    if (!res.ok) throw new Error(`STT error ${res.status}`);
+    const json = await res.json();
+    return { text: String(json?.text ?? "").trim() };
   });
