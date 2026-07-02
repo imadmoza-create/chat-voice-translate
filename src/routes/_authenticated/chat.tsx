@@ -2,38 +2,79 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useServerFn } from "@tanstack/react-start";
-import { getChatMessages, sendChatMessage, clearChat, type ChatMessage } from "@/lib/chat.functions";
-import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
-import { useUserGender } from "@/lib/prefs";
+import {
+  getChatMessages,
+  sendChatMessage,
+  clearChat,
+  transcribeAudio,
+  type ChatMessage,
+  type Correction,
+} from "@/lib/chat.functions";
+import { getProgress } from "@/lib/academy.functions";
+import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
+import { useUserGender, useAppLang } from "@/lib/prefs";
+import { langByCode } from "@/lib/languages";
 import { Button } from "@/components/ui/button";
-import { Bot, Send, Mic, MicOff, Volume2, VolumeX, Trash2, Loader2 } from "lucide-react";
+import {
+  GraduationCap,
+  Send,
+  Mic,
+  Square,
+  Volume2,
+  VolumeX,
+  Trash2,
+  Loader2,
+  Languages,
+  CheckCircle2,
+  Sparkles,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat")({
-  head: () => ({ meta: [{ title: "المساعد الذكي — ترجملي" }] }),
+  head: () => ({ meta: [{ title: "المدرّس الذكي — ترجملي" }] }),
   component: ChatPage,
 });
 
-function detectBcp47(text: string) {
-  return /[\u0600-\u06FF]/.test(text) ? "ar-SA" : "en-US";
+type Extra = { translation?: string; correction?: Correction | null; xpGain?: number };
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 }
 
 function ChatPage() {
   const loadMsgs = useServerFn(getChatMessages);
   const sendMsg = useServerFn(sendChatMessage);
   const clearMsgs = useServerFn(clearChat);
+  const transcribe = useServerFn(transcribeAudio);
+  const runProgress = useServerFn(getProgress);
+
+  const [lang] = useAppLang();
+  const langMeta = langByCode(lang);
+  const langName = langMeta?.name ?? "English";
+  const langNameAr = langMeta?.nameAr ?? lang;
+  const bcp47 = langMeta?.bcp47 ?? "en-US";
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [extras, setExtras] = useState<Record<string, Extra>>({});
+  const [showTr, setShowTr] = useState<Record<string, boolean>>({});
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [level, setLevel] = useState("A1");
+  const [xp, setXp] = useState(0);
   const [userGender] = useUserGender();
-  // الصوت عكس جنس المستخدم — يُضبط من الإعدادات
   const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
 
-  const recRef = useRef<any>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,7 +83,14 @@ function ChatPage() {
       .then((m) => setMessages(m))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+    runProgress({ data: { targetLang: lang } })
+      .then((p: any) => {
+        setLevel(p?.level ?? "A1");
+        setXp(p?.xp ?? 0);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,62 +105,113 @@ function ChatPage() {
     if (!trimmed || sending) return;
     setError(null);
     setInput("");
-    const optimistic: ChatMessage = { id: `tmp-${Date.now()}`, role: "user", content: trimmed, created_at: new Date().toISOString() };
+    const optimistic: ChatMessage = {
+      id: `tmp-${Date.now()}`,
+      role: "user",
+      content: trimmed,
+      created_at: new Date().toISOString(),
+    };
     setMessages((m) => [...m, optimistic]);
     setSending(true);
     try {
-      const { reply } = await sendMsg({ data: { text: trimmed } });
-      setMessages((m) => [...m, { id: `a-${Date.now()}`, role: "assistant", content: reply, created_at: new Date().toISOString() }]);
-      if (autoSpeak) speak(reply, detectBcp47(reply), gender);
+      const r = await sendMsg({ data: { text: trimmed, targetLang: lang, targetLangName: langName } });
+      const id = `a-${Date.now()}`;
+      setMessages((m) => [...m, { id, role: "assistant", content: r.reply, created_at: new Date().toISOString() }]);
+      setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
+      setLevel(r.level);
+      setXp((v) => v + r.xp);
+      if (autoSpeak) speak(r.reply, bcp47, gender);
     } catch (e: any) {
       const msg = e?.message?.includes("RATE_LIMIT")
         ? "تم تجاوز حد الطلبات، حاول بعد قليل."
         : e?.message?.includes("CREDITS")
-        ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
-        : "حدث خطأ أثناء الإرسال.";
+          ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
+          : "حدث خطأ أثناء الإرسال.";
       setError(msg);
     } finally {
       setSending(false);
     }
   };
 
-  const toggleListen = () => {
-    const SR = getSpeechRecognition();
-    if (!SR) return;
-    if (listening) {
-      recRef.current?.stop();
-      setListening(false);
-      return;
+  const startRecording = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunksRef.current.push(ev.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        if (blob.size < 1200) {
+          setError("التسجيل قصير جداً، حاول مجدداً.");
+          return;
+        }
+        setTranscribing(true);
+        try {
+          const dataUrl = await blobToDataUrl(blob);
+          const { text } = await transcribe({ data: { audio: dataUrl, mime: rec.mimeType, lang } });
+          if (text) await send(text);
+          else setError("لم أتمكّن من فهم الصوت، حاول مجدداً.");
+        } catch {
+          setError("تعذّر تحويل الصوت إلى نص.");
+        } finally {
+          setTranscribing(false);
+        }
+      };
+      mediaRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      setError("يرجى السماح بالوصول إلى الميكروفون.");
     }
-    const rec = new SR();
-    rec.lang = /[\u0600-\u06FF]/.test(input) ? "ar-SA" : "ar-SA";
-    rec.interimResults = false;
-    rec.onresult = (ev: any) => {
-      const t = ev.results[0][0].transcript;
-      setInput((cur) => (cur ? cur + " " : "") + t);
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recRef.current = rec;
-    rec.start();
-    setListening(true);
+  };
+
+  const stopRecording = () => {
+    mediaRef.current?.stop();
+    setRecording(false);
   };
 
   const handleClear = async () => {
     await clearMsgs().catch(() => {});
     setMessages([]);
+    setExtras({});
     stopSpeaking();
   };
 
   return (
     <div className="flex h-[calc(100vh-9rem)] flex-col">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Bot className="size-6 text-primary" />
-          <h1 className="text-2xl font-bold">المساعد الذكي</h1>
+          <div className="flex size-10 items-center justify-center rounded-2xl gradient-primary text-primary-foreground shadow-lg">
+            <GraduationCap className="size-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-tight">مدرّس {langNameAr} الذكي</h1>
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">{level}</span>
+              <span className="flex items-center gap-0.5"><Sparkles className="size-3" /> {xp} XP</span>
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="rounded-xl" title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"} onClick={() => { setAutoSpeak((v) => !v); stopSpeaking(); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
+            title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"}
+            onClick={() => {
+              setAutoSpeak((v) => !v);
+              stopSpeaking();
+            }}
+          >
             {autoSpeak ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
           <Button variant="ghost" size="icon" className="rounded-xl" title="مسح المحادثة" onClick={handleClear}>
@@ -123,36 +222,100 @@ function ChatPage() {
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border bg-card/50 p-4">
         {loading ? (
-          <div className="flex h-full items-center justify-center"><Loader2 className="size-7 animate-spin text-primary" /></div>
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="size-7 animate-spin text-primary" />
+          </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-            <Bot className="size-10 text-primary/60" />
-            <p>مرحباً! أنا مساعدك للغات والمحادثة.</p>
-            <p className="text-sm">جرّب: "صحّح لي: I goes to school" أو "درّبني على الإنجليزية".</p>
+            <div className="flex size-14 items-center justify-center rounded-3xl gradient-primary text-primary-foreground">
+              <GraduationCap className="size-7" />
+            </div>
+            <p className="font-medium text-foreground">مرحباً! أنا مدرّسك لتعلّم {langNameAr}.</p>
+            <p className="text-sm">تحدّث معي بالصوت أو بالكتابة، وسأصحّح أخطاءك وأطوّر مستواك خطوة بخطوة.</p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {["ابدأ محادثة بسيطة معي", "علّمني كلمات جديدة", "صحّح لي هذه الجملة"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="rounded-full border bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          messages.map((m) => (
-            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${m.role === "user" ? "gradient-primary text-primary-foreground" : "border bg-card"}`}>
-                {m.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert" dir="auto">
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
+          messages.map((m) => {
+            const ex = extras[m.id];
+            return (
+              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[88%] space-y-2">
+                  <div
+                    className={`rounded-2xl px-4 py-2.5 ${
+                      m.role === "user" ? "gradient-primary text-primary-foreground" : "border bg-card"
+                    }`}
+                  >
+                    {m.role === "assistant" ? (
+                      <div className="prose prose-sm max-w-none dark:prose-invert" dir="auto">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span dir="auto" className="whitespace-pre-wrap">
+                        {m.content}
+                      </span>
+                    )}
+                    {m.role === "assistant" && (
+                      <div className="mt-1.5 flex items-center gap-3">
+                        <button
+                          onClick={() => speak(m.content, bcp47, gender)}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                        >
+                          <Volume2 className="size-3.5" /> استمع
+                        </button>
+                        {ex?.translation && (
+                          <button
+                            onClick={() => setShowTr((s) => ({ ...s, [m.id]: !s[m.id] }))}
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                          >
+                            <Languages className="size-3.5" /> {showTr[m.id] ? "إخفاء الترجمة" : "الترجمة"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <span dir="auto" className="whitespace-pre-wrap">{m.content}</span>
-                )}
-                {m.role === "assistant" && (
-                  <button onClick={() => speak(m.content, detectBcp47(m.content), gender)} className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
-                    <Volume2 className="size-3.5" /> استمع
-                  </button>
-                )}
+
+                  {m.role === "assistant" && showTr[m.id] && ex?.translation && (
+                    <div className="rounded-xl border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground" dir="rtl">
+                      {ex.translation}
+                    </div>
+                  )}
+
+                  {m.role === "assistant" && ex?.correction && (
+                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm" dir="auto">
+                      <p className="mb-1 flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                        <CheckCircle2 className="size-4" /> تصحيح
+                      </p>
+                      <p className="font-medium text-foreground" dir="auto">
+                        {ex.correction.corrected}
+                      </p>
+                      {ex.correction.explanation && (
+                        <p className="mt-1 text-muted-foreground" dir="rtl">
+                          {ex.correction.explanation}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
-        {sending && (
+        {(sending || transcribing) && (
           <div className="flex justify-start">
-            <div className="rounded-2xl border bg-card px-4 py-2.5 text-muted-foreground"><Loader2 className="size-4 animate-spin" /></div>
+            <div className="flex items-center gap-2 rounded-2xl border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              {transcribing ? "جارٍ تحويل الصوت..." : "يفكّر المدرّس..."}
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
@@ -162,24 +325,43 @@ function ChatPage() {
 
       <form
         className="mt-3 flex items-end gap-2"
-        onSubmit={(e) => { e.preventDefault(); send(input); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
       >
-        {isSpeechRecognitionSupported() && (
-          <Button type="button" variant={listening ? "default" : "secondary"} size="icon" className="rounded-xl shrink-0" onClick={toggleListen} title="إدخال صوتي">
-            {listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant={recording ? "destructive" : "secondary"}
+          size="icon"
+          className="shrink-0 rounded-xl"
+          onClick={recording ? stopRecording : startRecording}
+          disabled={transcribing || sending}
+          title="تحدّث بالصوت"
+        >
+          {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
+        </Button>
         <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send(input);
+            }
+          }}
           rows={1}
-          placeholder="اكتب رسالتك..."
+          placeholder={recording ? "جارٍ التسجيل... اضغط للإيقاف" : "اكتب أو تحدّث بالصوت..."}
           dir="auto"
           className="max-h-32 flex-1 resize-none rounded-xl border bg-card px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary"
         />
-        <Button type="submit" size="icon" className="rounded-xl shrink-0 gradient-primary text-primary-foreground" disabled={sending || !input.trim()}>
+        <Button
+          type="submit"
+          size="icon"
+          className="shrink-0 rounded-xl gradient-primary text-primary-foreground"
+          disabled={sending || !input.trim()}
+        >
           <Send className="size-4" />
         </Button>
       </form>
