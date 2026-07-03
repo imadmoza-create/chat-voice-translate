@@ -291,15 +291,71 @@ function ChatPage() {
                   )}
 
                   {m.role === "assistant" && ex?.correction && (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm" dir="auto">
-                      <p className="mb-1 flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                        <CheckCircle2 className="size-4" /> تصحيح
+                    <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm" dir="auto">
+                      <p className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                        <CheckCircle2 className="size-4" /> طبقة التصحيح
                       </p>
-                      <p className="font-medium text-foreground" dir="auto">
-                        {ex.correction.corrected}
-                      </p>
+
+                      {ex.correction.original && (
+                        <div dir="rtl" className="text-xs text-muted-foreground">
+                          <span className="font-semibold text-destructive">الخطأ: </span>
+                          <span dir="auto" className="line-through">{ex.correction.original}</span>
+                        </div>
+                      )}
+
+                      <div dir="rtl" className="text-xs text-muted-foreground">
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">الصواب: </span>
+                        <button
+                          type="button"
+                          dir="auto"
+                          onClick={() => speak(ex.correction!.corrected, bcp47, gender)}
+                          className="font-medium text-foreground hover:text-primary"
+                        >
+                          {ex.correction.corrected} 🔊
+                        </button>
+                      </div>
+
+                      {ex.correction.reason && (
+                        <p className="rounded-lg bg-background/60 px-2 py-1.5 text-xs" dir="rtl">
+                          <span className="font-semibold">السبب: </span>
+                          {ex.correction.reason}
+                        </p>
+                      )}
+
+                      {ex.correction.rule && (
+                        <p className="rounded-lg border border-dashed bg-background/60 px-2 py-1.5 text-xs" dir="rtl">
+                          <span className="font-semibold text-primary">القاعدة: </span>
+                          {ex.correction.rule}
+                        </p>
+                      )}
+
+                      {ex.correction.examples && ex.correction.examples.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground" dir="rtl">
+                            أمثلة بديلة (اضغط للاستخدام):
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ex.correction.examples.map((sample, si) => (
+                              <button
+                                key={si}
+                                type="button"
+                                dir="auto"
+                                onClick={() => {
+                                  setInput(sample);
+                                  speak(sample, bcp47, gender);
+                                  inputRef.current?.focus();
+                                }}
+                                className="rounded-full border bg-background px-3 py-1 text-xs hover:border-primary hover:text-primary"
+                              >
+                                {sample}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {ex.correction.explanation && (
-                        <p className="mt-1 text-muted-foreground" dir="rtl">
+                        <p className="text-xs text-muted-foreground" dir="rtl">
                           {ex.correction.explanation}
                         </p>
                       )}

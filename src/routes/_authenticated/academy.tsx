@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
-import { useUserGender } from "@/lib/prefs";
+import { useUserGender, useAppLang } from "@/lib/prefs";
 import {
   generateLesson, generateVerbPack, generateExercise, generateLevelTest,
   placementTest, generateDailyPlan, generateDialogue, getProgress, updateProgress,
@@ -33,10 +33,11 @@ function aiError(e: any) {
 }
 
 function AcademyPage() {
-  const [lang, setLang] = useState("en");
+  const [lang] = useAppLang();
   const [userGender] = useUserGender();
   const voiceGender: VoiceGender = userGender === "male" ? "female" : "male";
   const langName = langByCode(lang)?.name ?? "English";
+  const langNameAr = langByCode(lang)?.nameAr ?? lang;
   const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
 
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -73,15 +74,17 @@ function AcademyPage() {
         <h1 className="text-2xl font-bold">الأكاديمية — الطريق إلى B2</h1>
       </div>
 
-      {/* اختيار اللغة والصوت */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+      {/* لغة التعلّم — تُغيَّر من الإعدادات فقط */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">اللغة:</span>
-          <select value={lang} onChange={(e) => { setLang(e.target.value); setView("home"); }} className="rounded-xl border bg-card px-3 py-1.5 font-medium">
-            {LANGUAGES.filter((l) => l.code !== "ar").map((l) => <option key={l.code} value={l.code}>{l.nameAr}</option>)}
-          </select>
+          <span className="text-muted-foreground">لغة التعلّم:</span>
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">{langNameAr}</span>
         </div>
+        <Link to="/settings" className="text-xs text-muted-foreground underline hover:text-primary">
+          تغيير اللغة من الإعدادات
+        </Link>
       </div>
+
 
       {/* شريط التقدّم */}
       {progress && (
@@ -425,7 +428,23 @@ function ProductionItem({ it, bcp47, voiceGender }: { it: any; bcp47: string; vo
 }
 
 // ===================== الأفعال =====================
-const VERB_CATEGORIES = ["الأفعال الأساسية الأكثر استخداماً", "أفعال الحياة اليومية", "أفعال العمل والمهن", "الأفعال المنعكسة", "الأفعال المركّبة", "الأفعال الشاذة"];
+const VERB_CATEGORIES = [
+  "الأفعال الأساسية الأكثر استخداماً",
+  "أفعال الحياة اليومية",
+  "أفعال العمل والمهن",
+  "أفعال الحركة والتنقّل",
+  "أفعال التواصل والكلام",
+  "أفعال المشاعر والأحاسيس",
+  "أفعال التفكير والرأي",
+  "الأفعال المنعكسة",
+  "الأفعال المركّبة",
+  "الأفعال الشاذة",
+  "أفعال الطبخ والطعام",
+  "أفعال التسوّق والمال",
+  "أفعال السفر والمطار",
+  "أفعال الدراسة والتعلّم",
+  "الأفعال المساعدة والنمطية",
+];
 function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
   const run = useServerFn(generateVerbPack);
   const [cat, setCat] = useState(VERB_CATEGORIES[0]);

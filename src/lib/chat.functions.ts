@@ -11,7 +11,14 @@ const VALID_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 export type ChatMessage = { id: string; role: "user" | "assistant"; content: string; created_at: string };
 
-export type Correction = { corrected: string; explanation: string };
+export type Correction = {
+  original: string;
+  corrected: string;
+  reason: string;
+  rule: string;
+  examples: string[];
+  explanation: string;
+};
 
 export type TutorReply = {
   reply: string;
@@ -34,7 +41,8 @@ function buildSystemPrompt(langName: string, level: string) {
 6) امنح نقاط خبرة (xp) بين 3 و15 حسب جودة مشاركة الطالب.
 
 أجب حصراً بكائن JSON صارم بدون أي نص إضافي أو Markdown، بالشكل التالي:
-{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"corrected":"<الجملة الصحيحة بلغة ${langName}>","explanation":"<شرح الخطأ بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}`;
+{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"original":"<جملة الطالب الخاطئة كما كتبها>","corrected":"<الجملة الصحيحة بلغة ${langName}>","reason":"<سبب الخطأ بالعربية بإيجاز، مثل: خطأ في زمن الفعل / ترتيب الكلمات / حرف جر>","rule":"<قاعدة نحوية مختصرة بالعربية توضّح الصواب>","examples":["<مثال بديل صحيح بلغة ${langName}>","<مثال بديل آخر صحيح بلغة ${langName}>"],"explanation":"<شرح إضافي مبسّط بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}
+اجعل حقل examples يحتوي على مثالين إلى ثلاثة أمثلة قصيرة صحيحة بلغة ${langName} يمكن للطالب استخدامها مباشرة.`;
 }
 
 function extractJson(content: string): any {
@@ -131,10 +139,16 @@ export const sendChatMessage = createServerFn({ method: "POST" })
 
     const reply = String(obj?.reply ?? "").trim() || "…";
     const translation = String(obj?.translation ?? "").trim();
-    const correction =
+    const correction: Correction | null =
       obj?.correction && typeof obj.correction === "object" && obj.correction.corrected
         ? {
+            original: String(obj.correction.original ?? ""),
             corrected: String(obj.correction.corrected),
+            reason: String(obj.correction.reason ?? ""),
+            rule: String(obj.correction.rule ?? ""),
+            examples: Array.isArray(obj.correction.examples)
+              ? obj.correction.examples.map((x: any) => String(x)).filter(Boolean).slice(0, 4)
+              : [],
             explanation: String(obj.correction.explanation ?? ""),
           }
         : null;
