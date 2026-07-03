@@ -11,7 +11,14 @@ const VALID_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 export type ChatMessage = { id: string; role: "user" | "assistant"; content: string; created_at: string };
 
-export type Correction = { corrected: string; explanation: string };
+export type Correction = {
+  original: string;
+  corrected: string;
+  reason: string;
+  rule: string;
+  examples: string[];
+  explanation: string;
+};
 
 export type TutorReply = {
   reply: string;
