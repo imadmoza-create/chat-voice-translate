@@ -74,15 +74,17 @@ function AcademyPage() {
         <h1 className="text-2xl font-bold">الأكاديمية — الطريق إلى B2</h1>
       </div>
 
-      {/* اختيار اللغة والصوت */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+      {/* لغة التعلّم — تُغيَّر من الإعدادات فقط */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">اللغة:</span>
-          <select value={lang} onChange={(e) => { setLang(e.target.value); setView("home"); }} className="rounded-xl border bg-card px-3 py-1.5 font-medium">
-            {LANGUAGES.filter((l) => l.code !== "ar").map((l) => <option key={l.code} value={l.code}>{l.nameAr}</option>)}
-          </select>
+          <span className="text-muted-foreground">لغة التعلّم:</span>
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">{langNameAr}</span>
         </div>
+        <Link to="/settings" className="text-xs text-muted-foreground underline hover:text-primary">
+          تغيير اللغة من الإعدادات
+        </Link>
       </div>
+
 
       {/* شريط التقدّم */}
       {progress && (
