@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { useUserGender, useAppLang } from "@/lib/prefs";
