@@ -33,10 +33,11 @@ function aiError(e: any) {
 }
 
 function AcademyPage() {
-  const [lang, setLang] = useState("en");
+  const [lang] = useAppLang();
   const [userGender] = useUserGender();
   const voiceGender: VoiceGender = userGender === "male" ? "female" : "male";
   const langName = langByCode(lang)?.name ?? "English";
+  const langNameAr = langByCode(lang)?.nameAr ?? lang;
   const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
 
   const [progress, setProgress] = useState<Progress | null>(null);
