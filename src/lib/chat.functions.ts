@@ -41,7 +41,8 @@ function buildSystemPrompt(langName: string, level: string) {
 6) امنح نقاط خبرة (xp) بين 3 و15 حسب جودة مشاركة الطالب.
 
 أجب حصراً بكائن JSON صارم بدون أي نص إضافي أو Markdown، بالشكل التالي:
-{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"corrected":"<الجملة الصحيحة بلغة ${langName}>","explanation":"<شرح الخطأ بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}`;
+{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"original":"<جملة الطالب الخاطئة كما كتبها>","corrected":"<الجملة الصحيحة بلغة ${langName}>","reason":"<سبب الخطأ بالعربية بإيجاز، مثل: خطأ في زمن الفعل / ترتيب الكلمات / حرف جر>","rule":"<قاعدة نحوية مختصرة بالعربية توضّح الصواب>","examples":["<مثال بديل صحيح بلغة ${langName}>","<مثال بديل آخر صحيح بلغة ${langName}>"],"explanation":"<شرح إضافي مبسّط بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}
+اجعل حقل examples يحتوي على مثالين إلى ثلاثة أمثلة قصيرة صحيحة بلغة ${langName} يمكن للطالب استخدامها مباشرة.`;
 }
 
 function extractJson(content: string): any {
