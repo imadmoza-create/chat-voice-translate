@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
-import { useUserGender } from "@/lib/prefs";
+import { useUserGender, useAppLang } from "@/lib/prefs";
 import {
   generateLesson, generateVerbPack, generateExercise, generateLevelTest,
   placementTest, generateDailyPlan, generateDialogue, getProgress, updateProgress,
