@@ -139,10 +139,16 @@ export const sendChatMessage = createServerFn({ method: "POST" })
 
     const reply = String(obj?.reply ?? "").trim() || "…";
     const translation = String(obj?.translation ?? "").trim();
-    const correction =
+    const correction: Correction | null =
       obj?.correction && typeof obj.correction === "object" && obj.correction.corrected
         ? {
+            original: String(obj.correction.original ?? ""),
             corrected: String(obj.correction.corrected),
+            reason: String(obj.correction.reason ?? ""),
+            rule: String(obj.correction.rule ?? ""),
+            examples: Array.isArray(obj.correction.examples)
+              ? obj.correction.examples.map((x: any) => String(x)).filter(Boolean).slice(0, 4)
+              : [],
             explanation: String(obj.correction.explanation ?? ""),
           }
         : null;
