@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { LANGUAGES } from "@/lib/languages";
 
 const LANG_KEY = "app_lang";
+const NATIVE_KEY = "app_native_lang";
 const GENDER_KEY = "app_gender";
 const LANG_EVENT = "app-lang-change";
+const NATIVE_EVENT = "app-native-lang-change";
 const GENDER_EVENT = "app-gender-change";
 
 export type UserGender = "male" | "female";
