@@ -124,7 +124,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const ordered = (history ?? []).reverse();
 
     const messages = [
-      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel) },
+      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel, data.scenario) },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
