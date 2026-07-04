@@ -28,9 +28,10 @@ export type TutorReply = {
   xp: number;
 };
 
-function buildSystemPrompt(langName: string, level: string) {
+function buildSystemPrompt(langName: string, level: string, scenario?: string) {
+  const scenarioLine = scenario ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.` : "";
   return `أنت "مدرّس ${langName} الذكي"، مساعد محادثة تعليمي متقدّم للطالب الناطق بالعربية.
-مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).
+مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).${scenarioLine}
 
 مهامك في كل رد:
 1) تحدّث مع الطالب بلغة ${langName} بمستوى مناسب لـ ${level} — جُمل قصيرة وواضحة للمبتدئين، وأطول وأعقد للمستويات الأعلى.
