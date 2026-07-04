@@ -26,6 +26,7 @@ const PREVIEW_SAMPLES = [
 function SettingsPage() {
   const { user } = useAuth();
   const [lang, setLang] = useAppLang();
+  const [nativeLang, setNativeLang] = useNativeLang();
   const [gender, setGender] = useUserGender();
   const deviceLang = detectDeviceLang();
   const voiceGender: VoiceGender = gender === "male" ? "female" : "male";
