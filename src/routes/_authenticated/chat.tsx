@@ -645,6 +645,88 @@ function ChatPage() {
           <Send className="size-4" />
         </Button>
       </form>
+
+      {score && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setScore(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border bg-card p-5 shadow-xl"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <Award className="size-5 text-primary" /> تقييم المحادثة
+              </h2>
+              <button onClick={() => setScore(null)} className="rounded-lg p-1 hover:bg-muted">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 flex flex-col items-center">
+              <div className="flex size-24 flex-col items-center justify-center rounded-full gradient-primary text-primary-foreground">
+                <span className="text-3xl font-extrabold">{score.overall}</span>
+                <span className="text-xs">من 100</span>
+              </div>
+              <span className="mt-2 rounded-full bg-primary/10 px-3 py-0.5 text-sm font-semibold text-primary">
+                المستوى: {score.level}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { label: "النطق", value: score.pronunciation },
+                { label: "القواعد", value: score.grammar },
+                { label: "المفردات", value: score.vocabulary },
+                { label: "الطلاقة", value: score.fluency },
+              ].map((row) => (
+                <div key={row.label}>
+                  <div className="mb-0.5 flex justify-between text-xs font-medium">
+                    <span>{row.label}</span>
+                    <span>{row.value}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full gradient-primary transition-all" style={{ width: `${row.value}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {score.feedback && (
+              <p className="mt-4 rounded-xl bg-muted/60 px-3 py-2 text-sm">{score.feedback}</p>
+            )}
+
+            {score.strengths.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">نقاط القوة</p>
+                <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                  {score.strengths.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {score.improvements.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-sm font-semibold text-amber-600 dark:text-amber-400">للتحسين</p>
+                <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                  {score.improvements.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <Button className="mt-5 w-full rounded-xl gradient-primary text-primary-foreground" onClick={() => setScore(null)}>
+              متابعة المحادثة
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
