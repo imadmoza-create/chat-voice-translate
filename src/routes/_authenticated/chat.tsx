@@ -97,8 +97,11 @@ function PronunciationPractice({
         try {
           const dataUrl = await blobToDataUrl(blob);
           const { text } = await transcribe({ data: { audio: dataUrl, mime: rec.mimeType, lang } });
-          if (text) setResult(assessPronunciation(target, text));
-          else setErr("لم أتمكّن من سماع نطقك بوضوح.");
+          if (text) {
+            const r = assessPronunciation(target, text);
+            setResult(r);
+            onScore?.(r.accuracy);
+          } else setErr("لم أتمكّن من سماع نطقك بوضوح.");
         } catch {
           setErr("تعذّر تحليل النطق.");
         } finally {
