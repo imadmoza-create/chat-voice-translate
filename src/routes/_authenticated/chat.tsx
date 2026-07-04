@@ -7,13 +7,16 @@ import {
   sendChatMessage,
   clearChat,
   transcribeAudio,
+  assessConversation,
   type ChatMessage,
   type Correction,
+  type ConversationScore,
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
 import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
 import { useUserGender, useAppLang } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
+import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { assessPronunciation, type PronunciationResult } from "@/lib/pronunciation";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +31,8 @@ import {
   Languages,
   CheckCircle2,
   Sparkles,
+  Award,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat")({
@@ -53,12 +58,14 @@ function PronunciationPractice({
   gender,
   lang,
   transcribe,
+  onScore,
 }: {
   target: string;
   bcp47: string;
   gender: VoiceGender;
   lang: string;
   transcribe: (args: { data: { audio: string; mime: string; lang: string } }) => Promise<{ text: string }>;
+  onScore?: (accuracy: number) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -90,8 +97,11 @@ function PronunciationPractice({
         try {
           const dataUrl = await blobToDataUrl(blob);
           const { text } = await transcribe({ data: { audio: dataUrl, mime: rec.mimeType, lang } });
-          if (text) setResult(assessPronunciation(target, text));
-          else setErr("لم أتمكّن من سماع نطقك بوضوح.");
+          if (text) {
+            const r = assessPronunciation(target, text);
+            setResult(r);
+            onScore?.(r.accuracy);
+          } else setErr("لم أتمكّن من سماع نطقك بوضوح.");
         } catch {
           setErr("تعذّر تحليل النطق.");
         } finally {
@@ -181,6 +191,7 @@ function ChatPage() {
   const clearMsgs = useServerFn(clearChat);
   const transcribe = useServerFn(transcribeAudio);
   const runProgress = useServerFn(getProgress);
+  const runAssess = useServerFn(assessConversation);
 
   const [lang] = useAppLang();
   const langMeta = langByCode(lang);
@@ -202,6 +213,41 @@ function ChatPage() {
   const [userGender] = useUserGender();
   const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
+  const [scenario, setScenario] = useState<string>("free");
+  const pronScores = useRef<number[]>([]);
+  const [score, setScore] = useState<ConversationScore | null>(null);
+  const [scoring, setScoring] = useState(false);
+
+  const addPronScore = (acc: number) => {
+    pronScores.current.push(acc);
+  };
+
+  const finishAndScore = async () => {
+    if (scoring) return;
+    setScoring(true);
+    setError(null);
+    try {
+      const avg =
+        pronScores.current.length > 0
+          ? pronScores.current.reduce((a, b) => a + b, 0) / pronScores.current.length
+          : undefined;
+      const r = await runAssess({
+        data: { targetLang: lang, targetLangName: langName, pronunciationScore: avg },
+      });
+      setScore(r);
+      setLevel(r.level);
+    } catch (e: any) {
+      const msg = e?.message?.includes("RATE_LIMIT")
+        ? "تم تجاوز حد الطلبات، حاول بعد قليل."
+        : e?.message?.includes("CREDITS")
+          ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
+          : "تعذّر إنشاء التقييم.";
+      setError(msg);
+    } finally {
+      setScoring(false);
+    }
+  };
+
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -244,7 +290,14 @@ function ChatPage() {
     setMessages((m) => [...m, optimistic]);
     setSending(true);
     try {
-      const r = await sendMsg({ data: { text: trimmed, targetLang: lang, targetLangName: langName } });
+      const r = await sendMsg({
+        data: {
+          text: trimmed,
+          targetLang: lang,
+          targetLangName: langName,
+          scenario: scenarioById(scenario)?.prompt,
+        },
+      });
       const id = `a-${Date.now()}`;
       setMessages((m) => [...m, { id, role: "assistant", content: r.reply, created_at: new Date().toISOString() }]);
       setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
@@ -336,6 +389,16 @@ function ChatPage() {
             variant="ghost"
             size="icon"
             className="rounded-xl"
+            title="إنهاء المحادثة والحصول على تقييم"
+            onClick={finishAndScore}
+            disabled={scoring || messages.length === 0}
+          >
+            {scoring ? <Loader2 className="size-4 animate-spin" /> : <Award className="size-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
             title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"}
             onClick={() => {
               setAutoSpeak((v) => !v);
@@ -349,6 +412,26 @@ function ChatPage() {
           </Button>
         </div>
       </div>
+
+      {/* اختيار سيناريو المحادثة */}
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+        {SCENARIOS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setScenario(s.id)}
+            title={s.descAr}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              scenario === s.id
+                ? "gradient-primary text-primary-foreground border-transparent"
+                : "bg-card hover:border-primary hover:text-primary"
+            }`}
+          >
+            {s.emoji} {s.titleAr}
+          </button>
+        ))}
+      </div>
+
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border bg-card/50 p-4">
         {loading ? (
@@ -451,6 +534,7 @@ function ChatPage() {
                         gender={gender}
                         lang={lang}
                         transcribe={transcribe}
+                        onScore={addPronScore}
                       />
 
 
@@ -561,6 +645,88 @@ function ChatPage() {
           <Send className="size-4" />
         </Button>
       </form>
+
+      {score && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setScore(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border bg-card p-5 shadow-xl"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <Award className="size-5 text-primary" /> تقييم المحادثة
+              </h2>
+              <button onClick={() => setScore(null)} className="rounded-lg p-1 hover:bg-muted">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 flex flex-col items-center">
+              <div className="flex size-24 flex-col items-center justify-center rounded-full gradient-primary text-primary-foreground">
+                <span className="text-3xl font-extrabold">{score.overall}</span>
+                <span className="text-xs">من 100</span>
+              </div>
+              <span className="mt-2 rounded-full bg-primary/10 px-3 py-0.5 text-sm font-semibold text-primary">
+                المستوى: {score.level}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { label: "النطق", value: score.pronunciation },
+                { label: "القواعد", value: score.grammar },
+                { label: "المفردات", value: score.vocabulary },
+                { label: "الطلاقة", value: score.fluency },
+              ].map((row) => (
+                <div key={row.label}>
+                  <div className="mb-0.5 flex justify-between text-xs font-medium">
+                    <span>{row.label}</span>
+                    <span>{row.value}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full gradient-primary transition-all" style={{ width: `${row.value}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {score.feedback && (
+              <p className="mt-4 rounded-xl bg-muted/60 px-3 py-2 text-sm">{score.feedback}</p>
+            )}
+
+            {score.strengths.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">نقاط القوة</p>
+                <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                  {score.strengths.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {score.improvements.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-sm font-semibold text-amber-600 dark:text-amber-400">للتحسين</p>
+                <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                  {score.improvements.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <Button className="mt-5 w-full rounded-xl gradient-primary text-primary-foreground" onClick={() => setScore(null)}>
+              متابعة المحادثة
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }

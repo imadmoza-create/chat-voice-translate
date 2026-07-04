@@ -28,9 +28,10 @@ export type TutorReply = {
   xp: number;
 };
 
-function buildSystemPrompt(langName: string, level: string) {
+function buildSystemPrompt(langName: string, level: string, scenario?: string) {
+  const scenarioLine = scenario ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.` : "";
   return `أنت "مدرّس ${langName} الذكي"، مساعد محادثة تعليمي متقدّم للطالب الناطق بالعربية.
-مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).
+مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).${scenarioLine}
 
 مهامك في كل رد:
 1) تحدّث مع الطالب بلغة ${langName} بمستوى مناسب لـ ${level} — جُمل قصيرة وواضحة للمبتدئين، وأطول وأعقد للمستويات الأعلى.
@@ -91,6 +92,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         text: z.string().min(1).max(4000),
         targetLang: z.string().min(2).max(10),
         targetLangName: z.string().min(2).max(40),
+        scenario: z.string().max(400).optional(),
       })
       .parse(input),
   )
@@ -122,7 +124,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const ordered = (history ?? []).reverse();
 
     const messages = [
-      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel) },
+      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel, data.scenario) },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -230,4 +232,97 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(`STT error ${res.status}`);
     const json = await res.json();
     return { text: String(json?.text ?? "").trim() };
+  });
+
+// ===================== تقييم المحادثة النهائي =====================
+export type ConversationScore = {
+  pronunciation: number;
+  grammar: number;
+  vocabulary: number;
+  fluency: number;
+  overall: number;
+  level: string;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+};
+
+export const assessConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        targetLang: z.string().min(2).max(10),
+        targetLangName: z.string().min(2).max(40),
+        pronunciationScore: z.number().min(0).max(100).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<ConversationScore> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    const { data: history } = await context.supabase
+      .from("chat_messages")
+      .select("role, content")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: true })
+      .limit(100);
+    const ordered = history ?? [];
+    const userTurns = ordered.filter((m) => m.role === "user");
+
+    const { data: prog } = await context.supabase
+      .from("learning_progress")
+      .select("level")
+      .eq("user_id", context.userId)
+      .eq("target_lang", data.targetLang)
+      .maybeSingle();
+    const curLevel = prog?.level ?? "A1";
+
+    const transcript = ordered
+      .map((m) => `${m.role === "user" ? "الطالب" : "المدرّس"}: ${m.content}`)
+      .join("\n");
+
+    const sys = `أنت مقيّم لغوي خبير. قيّم أداء الطالب الناطق بالعربية في محادثة بلغة ${data.targetLangName} (مستواه الحالي ${curLevel}).
+اعتمد فقط على رسائل الطالب. أعطِ درجات من 0 إلى 100 لكل من: القواعد (grammar)، المفردات (vocabulary)، الطلاقة (fluency)، والنطق (pronunciation).
+${data.pronunciationScore !== undefined ? `درجة النطق المقاسة فعلياً من تدريبات الصوت هي ${Math.round(data.pronunciationScore)} فاعتمدها كمرجع أساسي للنطق.` : "قدّر النطق تقديرياً من جودة الكتابة إذ لا توجد قياسات صوتية."}
+أجب حصراً بكائن JSON صارم بدون أي نص إضافي:
+{"pronunciation":<رقم>,"grammar":<رقم>,"vocabulary":<رقم>,"fluency":<رقم>,"overall":<رقم متوسط>,"level":"<A1|A2|B1|B2|C1|C2>","feedback":"<ملخص تشجيعي بالعربية>","strengths":["<نقطة قوة بالعربية>"],"improvements":["<نقطة للتحسين بالعربية>"]}`;
+
+    const res = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: transcript || "لا توجد رسائل." },
+        ],
+      }),
+    });
+    if (res.status === 429) throw new Error("RATE_LIMIT");
+    if (res.status === 402) throw new Error("CREDITS");
+    if (!res.ok) throw new Error(`AI error ${res.status}`);
+    const json = await res.json();
+    const obj = extractJson(String(json?.choices?.[0]?.message?.content ?? ""));
+
+    const clamp = (v: any, d = 0) => Math.max(0, Math.min(100, Math.round(Number(v) || d)));
+    const pronunciation = data.pronunciationScore !== undefined ? Math.round(data.pronunciationScore) : clamp(obj?.pronunciation);
+    const grammar = clamp(obj?.grammar);
+    const vocabulary = clamp(obj?.vocabulary);
+    const fluency = clamp(obj?.fluency);
+    const overall = clamp(obj?.overall, Math.round((pronunciation + grammar + vocabulary + fluency) / 4));
+    const level = VALID_LEVELS.includes(obj?.level) ? String(obj.level) : curLevel;
+
+    return {
+      pronunciation,
+      grammar,
+      vocabulary,
+      fluency,
+      overall,
+      level,
+      feedback: String(obj?.feedback ?? "").trim() || "أحسنت! استمر في التدرّب.",
+      strengths: Array.isArray(obj?.strengths) ? obj.strengths.map((x: any) => String(x)).filter(Boolean).slice(0, 5) : [],
+      improvements: Array.isArray(obj?.improvements) ? obj.improvements.map((x: any) => String(x)).filter(Boolean).slice(0, 5) : [],
+    };
   });
