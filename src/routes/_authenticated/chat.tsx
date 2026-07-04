@@ -445,6 +445,16 @@ function ChatPage() {
                         </button>
                       </div>
 
+                      <PronunciationPractice
+                        target={ex.correction.corrected}
+                        bcp47={bcp47}
+                        gender={gender}
+                        lang={lang}
+                        transcribe={transcribe}
+                      />
+
+
+
                       {ex.correction.reason && (
                         <p className="rounded-lg bg-background/60 px-2 py-1.5 text-xs" dir="rtl">
                           <span className="font-semibold">السبب: </span>
