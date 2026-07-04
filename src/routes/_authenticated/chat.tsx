@@ -191,6 +191,7 @@ function ChatPage() {
   const clearMsgs = useServerFn(clearChat);
   const transcribe = useServerFn(transcribeAudio);
   const runProgress = useServerFn(getProgress);
+  const runAssess = useServerFn(assessConversation);
 
   const [lang] = useAppLang();
   const langMeta = langByCode(lang);
