@@ -504,6 +504,7 @@ function ChatPage() {
                         gender={gender}
                         lang={lang}
                         transcribe={transcribe}
+                        onScore={addPronScore}
                       />
 
 
