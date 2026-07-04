@@ -389,6 +389,16 @@ function ChatPage() {
             variant="ghost"
             size="icon"
             className="rounded-xl"
+            title="إنهاء المحادثة والحصول على تقييم"
+            onClick={finishAndScore}
+            disabled={scoring || messages.length === 0}
+          >
+            {scoring ? <Loader2 className="size-4 animate-spin" /> : <Award className="size-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
             title={autoSpeak ? "إيقاف النطق التلقائي" : "تشغيل النطق التلقائي"}
             onClick={() => {
               setAutoSpeak((v) => !v);
@@ -402,6 +412,26 @@ function ChatPage() {
           </Button>
         </div>
       </div>
+
+      {/* اختيار سيناريو المحادثة */}
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+        {SCENARIOS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setScenario(s.id)}
+            title={s.descAr}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              scenario === s.id
+                ? "gradient-primary text-primary-foreground border-transparent"
+                : "bg-card hover:border-primary hover:text-primary"
+            }`}
+          >
+            {s.emoji} {s.titleAr}
+          </button>
+        ))}
+      </div>
+
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border bg-card/50 p-4">
         {loading ? (
