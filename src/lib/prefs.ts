@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { LANGUAGES } from "@/lib/languages";
 
 const LANG_KEY = "app_lang";
+const NATIVE_KEY = "app_native_lang";
 const GENDER_KEY = "app_gender";
 const LANG_EVENT = "app-lang-change";
+const NATIVE_EVENT = "app-native-lang-change";
 const GENDER_EVENT = "app-gender-change";
 
 export type UserGender = "male" | "female";
@@ -29,6 +31,35 @@ export function setAppLang(lang: string) {
   localStorage.setItem(LANG_KEY, lang);
   window.dispatchEvent(new CustomEvent(LANG_EVENT, { detail: lang }));
 }
+
+// اللغة الأساسية (لغتك الأم) — افتراضياً لغة الهاتف
+export function getNativeLang(): string {
+  if (typeof window === "undefined") return "ar";
+  return localStorage.getItem(NATIVE_KEY) ?? detectDeviceLang();
+}
+
+export function setNativeLang(lang: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NATIVE_KEY, lang);
+  window.dispatchEvent(new CustomEvent(NATIVE_EVENT, { detail: lang }));
+}
+
+export function useNativeLang(): [string, (l: string) => void] {
+  const [lang, setLang] = useState<string>("ar");
+  useEffect(() => {
+    setLang(getNativeLang());
+    const handler = () => setLang(getNativeLang());
+    window.addEventListener(NATIVE_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(NATIVE_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+  return [lang, setNativeLang];
+}
+
+
 
 export function getUserGender(): UserGender {
   if (typeof window === "undefined") return "male";

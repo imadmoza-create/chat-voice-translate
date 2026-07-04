@@ -14,6 +14,7 @@ import { getProgress } from "@/lib/academy.functions";
 import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
 import { useUserGender, useAppLang } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
+import { assessPronunciation, type PronunciationResult } from "@/lib/pronunciation";
 import { Button } from "@/components/ui/button";
 import {
   GraduationCap,
@@ -44,6 +45,135 @@ function blobToDataUrl(blob: Blob): Promise<string> {
     r.readAsDataURL(blob);
   });
 }
+
+// ============ تدريب النطق: أعد نطق الجملة المصححة وقيّم دقتك ============
+function PronunciationPractice({
+  target,
+  bcp47,
+  gender,
+  lang,
+  transcribe,
+}: {
+  target: string;
+  bcp47: string;
+  gender: VoiceGender;
+  lang: string;
+  transcribe: (args: { data: { audio: string; mime: string; lang: string } }) => Promise<{ text: string }>;
+}) {
+  const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<PronunciationResult | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunks = useRef<Blob[]>([]);
+
+  const start = async () => {
+    setErr(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunks.current = [];
+      rec.ondataavailable = (ev) => ev.data.size > 0 && chunks.current.push(ev.data);
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks.current, { type: rec.mimeType || "audio/webm" });
+        if (blob.size < 1200) {
+          setErr("التسجيل قصير جداً، حاول مجدداً.");
+          return;
+        }
+        setBusy(true);
+        try {
+          const dataUrl = await blobToDataUrl(blob);
+          const { text } = await transcribe({ data: { audio: dataUrl, mime: rec.mimeType, lang } });
+          if (text) setResult(assessPronunciation(target, text));
+          else setErr("لم أتمكّن من سماع نطقك بوضوح.");
+        } catch {
+          setErr("تعذّر تحليل النطق.");
+        } finally {
+          setBusy(false);
+        }
+      };
+      recRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      setErr("يرجى السماح بالوصول إلى الميكروفون.");
+    }
+  };
+  const stop = () => {
+    recRef.current?.stop();
+    setRecording(false);
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg border border-dashed bg-background/60 px-2 py-2" dir="rtl">
+      <p className="text-xs font-semibold text-primary">🎯 تدرّب على النطق</p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => speak(target, bcp47, gender)}
+          className="rounded-full border bg-card px-3 py-1 text-xs hover:border-primary hover:text-primary"
+        >
+          🔊 اسمع النطق الصحيح
+        </button>
+        <button
+          type="button"
+          onClick={recording ? stop : start}
+          disabled={busy}
+          className={`rounded-full px-3 py-1 text-xs text-primary-foreground disabled:opacity-60 ${
+            recording ? "bg-destructive" : "gradient-primary"
+          }`}
+        >
+          {busy ? "جارٍ التحليل..." : recording ? "■ أوقف التسجيل" : "🎙️ سجّل نطقك"}
+        </button>
+      </div>
+      {err && <p className="text-xs text-destructive">{err}</p>}
+      {result && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className={`text-lg font-bold ${result.color}`}>{result.accuracy}%</span>
+            <span className={`text-xs font-semibold ${result.color}`}>{result.label}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full gradient-primary transition-all"
+              style={{ width: `${result.accuracy}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            دقة الكلمات {result.wordAccuracy}% · دقة الحروف {result.charAccuracy}%
+          </p>
+          <div className="flex flex-wrap gap-1" dir="auto">
+            {result.words.map((w, i) => (
+              <span
+                key={i}
+                className={`rounded px-1.5 py-0.5 text-xs ${
+                  w.correct
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-destructive/15 text-destructive line-through"
+                }`}
+              >
+                {w.word}
+              </span>
+            ))}
+          </div>
+          {result.heard && (
+            <p className="text-[11px] text-muted-foreground" dir="rtl">
+              سمعت: <span dir="auto">{result.heard}</span>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 function ChatPage() {
   const loadMsgs = useServerFn(getChatMessages);
@@ -314,6 +444,16 @@ function ChatPage() {
                           {ex.correction.corrected} 🔊
                         </button>
                       </div>
+
+                      <PronunciationPractice
+                        target={ex.correction.corrected}
+                        bcp47={bcp47}
+                        gender={gender}
+                        lang={lang}
+                        transcribe={transcribe}
+                      />
+
+
 
                       {ex.correction.reason && (
                         <p className="rounded-lg bg-background/60 px-2 py-1.5 text-xs" dir="rtl">

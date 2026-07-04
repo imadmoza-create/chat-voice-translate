@@ -18,6 +18,7 @@ export const LANGUAGES: Language[] = [
   { code: "ur", name: "Urdu", nameAr: "الأردية", bcp47: "ur-PK" },
   { code: "fa", name: "Persian", nameAr: "الفارسية", bcp47: "fa-IR" },
   { code: "id", name: "Indonesian", nameAr: "الإندونيسية", bcp47: "id-ID" },
+  { code: "ro", name: "Romanian", nameAr: "الرومانية", bcp47: "ro-RO" },
 ];
 
 export function langByCode(code: string): Language | undefined {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap, Mail } from "lucide-react";
 import { LANGUAGES, langByCode } from "@/lib/languages";
-import { useAppLang, useUserGender, detectDeviceLang } from "@/lib/prefs";
+import { useAppLang, useUserGender, detectDeviceLang, useNativeLang } from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const PREVIEW_SAMPLES = [
 function SettingsPage() {
   const { user } = useAuth();
   const [lang, setLang] = useAppLang();
+  const [nativeLang, setNativeLang] = useNativeLang();
   const [gender, setGender] = useUserGender();
   const deviceLang = detectDeviceLang();
   const voiceGender: VoiceGender = gender === "male" ? "female" : "male";
@@ -137,10 +138,43 @@ function SettingsPage() {
         </p>
       </div>
 
-      {/* لغة التعلّم */}
+      {/* اللغة الأساسية (لغتك الأم) */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2 font-bold">
-          <Languages className="size-5 text-primary" /> لغة التعلّم
+          <Languages className="size-5 text-primary" /> لغتك الأساسية
+        </div>
+        <p className="text-sm text-muted-foreground">
+          لغتك الأم التي تُشرح بها التصحيحات. الافتراضي لغة هاتفك:{" "}
+          <span className="font-medium text-foreground">{langByCode(deviceLang)?.nameAr ?? deviceLang}</span>
+        </p>
+        <select
+          value={nativeLang}
+          onChange={(e) => setNativeLang(e.target.value)}
+          className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.nameAr} {l.code === deviceLang ? "(لغة الهاتف)" : ""}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-2 gap-1.5 rounded-xl"
+          onClick={() => {
+            setNativeLang(deviceLang);
+            toast.success(`تم ضبط لغتك الأساسية على لغة الهاتف: ${langByCode(deviceLang)?.nameAr ?? deviceLang}`);
+          }}
+        >
+          <Smartphone className="size-4" /> استخدم لغة الهاتف{nativeLang === deviceLang ? " ✓" : ""}
+        </Button>
+      </div>
+
+      {/* لغة التعلّم والترجمة */}
+      <div className="space-y-2 rounded-2xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-bold">
+          <Languages className="size-5 text-primary" /> اللغة المطلوب تعلّمها وترجمتها
         </div>
         <p className="text-sm text-muted-foreground">
           هذه اللغة تُستخدم في كل أقسام التطبيق (الكلمات، الأفعال، الاختبار).
