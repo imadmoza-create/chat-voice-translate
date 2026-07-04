@@ -213,6 +213,41 @@ function ChatPage() {
   const [userGender] = useUserGender();
   const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
+  const [scenario, setScenario] = useState<string>("free");
+  const pronScores = useRef<number[]>([]);
+  const [score, setScore] = useState<ConversationScore | null>(null);
+  const [scoring, setScoring] = useState(false);
+
+  const addPronScore = (acc: number) => {
+    pronScores.current.push(acc);
+  };
+
+  const finishAndScore = async () => {
+    if (scoring) return;
+    setScoring(true);
+    setError(null);
+    try {
+      const avg =
+        pronScores.current.length > 0
+          ? pronScores.current.reduce((a, b) => a + b, 0) / pronScores.current.length
+          : undefined;
+      const r = await runAssess({
+        data: { targetLang: lang, targetLangName: langName, pronunciationScore: avg },
+      });
+      setScore(r);
+      setLevel(r.level);
+    } catch (e: any) {
+      const msg = e?.message?.includes("RATE_LIMIT")
+        ? "تم تجاوز حد الطلبات، حاول بعد قليل."
+        : e?.message?.includes("CREDITS")
+          ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
+          : "تعذّر إنشاء التقييم.";
+      setError(msg);
+    } finally {
+      setScoring(false);
+    }
+  };
+
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
