@@ -290,7 +290,14 @@ function ChatPage() {
     setMessages((m) => [...m, optimistic]);
     setSending(true);
     try {
-      const r = await sendMsg({ data: { text: trimmed, targetLang: lang, targetLangName: langName } });
+      const r = await sendMsg({
+        data: {
+          text: trimmed,
+          targetLang: lang,
+          targetLangName: langName,
+          scenario: scenarioById(scenario)?.prompt,
+        },
+      });
       const id = `a-${Date.now()}`;
       setMessages((m) => [...m, { id, role: "assistant", content: r.reply, created_at: new Date().toISOString() }]);
       setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
