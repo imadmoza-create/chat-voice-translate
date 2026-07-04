@@ -31,6 +31,8 @@ import {
   Languages,
   CheckCircle2,
   Sparkles,
+  Award,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat")({
