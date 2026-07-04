@@ -58,12 +58,14 @@ function PronunciationPractice({
   gender,
   lang,
   transcribe,
+  onScore,
 }: {
   target: string;
   bcp47: string;
   gender: VoiceGender;
   lang: string;
   transcribe: (args: { data: { audio: string; mime: string; lang: string } }) => Promise<{ text: string }>;
+  onScore?: (accuracy: number) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
