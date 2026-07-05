@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
-import { useUserGender } from "@/lib/prefs";
+import { useUserGender, useAppLang } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Sparkles, MessageCircle,
+  Square, Sparkles, MessageCircle, Settings,
 } from "lucide-react";
 
 type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
