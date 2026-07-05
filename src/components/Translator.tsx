@@ -27,7 +27,7 @@ export function Translator() {
   const { user } = useAuth();
   const doText = useServerFn(translateText);
 
-  const [targetLang, setTargetLang] = useState("en");
+  const [targetLang] = useAppLang();
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
