@@ -150,6 +150,64 @@ function SettingsPage() {
         </p>
       </div>
 
+      {/* معلومات الطالب — لتخصيص التدريس */}
+      <div className="space-y-3 rounded-2xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-bold">
+          <UserRound className="size-5 text-primary" /> معلوماتك الشخصية
+        </div>
+        <p className="text-sm text-muted-foreground">
+          يستخدمها المدرّس الذكي لتخصيص الدروس والأمثلة والتمارين على اسمك وعمرك وعملك وحياتك.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">الاسم</label>
+            <input
+              value={profileForm.name}
+              onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="اسمك"
+              maxLength={60}
+              className="w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">العمر</label>
+            <input
+              value={profileForm.age}
+              onChange={(e) => setProfileForm((p) => ({ ...p, age: e.target.value }))}
+              placeholder="عمرك"
+              inputMode="numeric"
+              maxLength={3}
+              className="w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">العمل / الدراسة</label>
+          <input
+            value={profileForm.job}
+            onChange={(e) => setProfileForm((p) => ({ ...p, job: e.target.value }))}
+            placeholder="مثال: مهندس، طالب، طبيب…"
+            maxLength={80}
+            className="w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">لمحة عن حياتك واهتماماتك</label>
+          <textarea
+            value={profileForm.bio}
+            onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
+            placeholder="اكتب نبذة عن حياتك، هواياتك، وأهدافك من تعلّم اللغة…"
+            maxLength={500}
+            rows={3}
+            className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <Button size="sm" className="gap-1.5 rounded-xl" onClick={saveProfile}>
+          <Save className="size-4" /> {profileSaved ? "تم الحفظ ✓" : "حفظ المعلومات"}
+        </Button>
+      </div>
+
+
       {/* اللغة الأساسية (لغتك الأم) */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2 font-bold">
