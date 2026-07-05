@@ -96,6 +96,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         targetLang: z.string().min(2).max(10),
         targetLangName: z.string().min(2).max(40),
         scenario: z.string().max(400).optional(),
+        student: z.string().max(600).optional(),
       })
       .parse(input),
   )
