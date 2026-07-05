@@ -127,17 +127,13 @@ export function Translator() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">الترجمة الذكية</h1>
-        <div className="flex items-center gap-2">
+        <Link to="/settings" className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">إلى:</span>
-          <Select value={targetLang} onValueChange={setTargetLang}>
-            <SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((l) => (
-                <SelectItem key={l.code} value={l.code}>{l.nameAr}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <span className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 text-sm font-medium">
+            {targetMeta?.nameAr ?? targetLang}
+            <Settings className="size-3.5 text-muted-foreground" />
+          </span>
+        </Link>
       </div>
 
       <Tabs defaultValue="text" className="w-full">
