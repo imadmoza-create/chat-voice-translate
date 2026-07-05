@@ -194,6 +194,7 @@ function ChatPage() {
   const runAssess = useServerFn(assessConversation);
 
   const [lang] = useAppLang();
+  const [studentProfile] = useStudentProfile();
   const langMeta = langByCode(lang);
   const langName = langMeta?.name ?? "English";
   const langNameAr = langMeta?.nameAr ?? lang;
