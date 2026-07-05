@@ -14,7 +14,7 @@ import {
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
 import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
-import { useUserGender, useAppLang } from "@/lib/prefs";
+import { useUserGender, useAppLang, useStudentProfile, buildStudentContext } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { assessPronunciation, type PronunciationResult } from "@/lib/pronunciation";
@@ -194,6 +194,7 @@ function ChatPage() {
   const runAssess = useServerFn(assessConversation);
 
   const [lang] = useAppLang();
+  const [studentProfile] = useStudentProfile();
   const langMeta = langByCode(lang);
   const langName = langMeta?.name ?? "English";
   const langNameAr = langMeta?.nameAr ?? lang;
@@ -296,6 +297,7 @@ function ChatPage() {
           targetLang: lang,
           targetLangName: langName,
           scenario: scenarioById(scenario)?.prompt,
+          student: buildStudentContext(studentProfile) || undefined,
         },
       });
       const id = `a-${Date.now()}`;

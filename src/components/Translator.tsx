@@ -1,23 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LANGUAGES, langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
-import { useUserGender } from "@/lib/prefs";
+import { useUserGender, useAppLang } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Sparkles, MessageCircle,
+  Square, Sparkles, MessageCircle, Settings,
 } from "lucide-react";
 
 type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
@@ -26,7 +24,7 @@ export function Translator() {
   const { user } = useAuth();
   const doText = useServerFn(translateText);
 
-  const [targetLang, setTargetLang] = useState("en");
+  const [targetLang] = useAppLang();
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
@@ -126,17 +124,13 @@ export function Translator() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">الترجمة الذكية</h1>
-        <div className="flex items-center gap-2">
+        <Link to="/settings" className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">إلى:</span>
-          <Select value={targetLang} onValueChange={setTargetLang}>
-            <SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((l) => (
-                <SelectItem key={l.code} value={l.code}>{l.nameAr}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <span className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 text-sm font-medium">
+            {targetMeta?.nameAr ?? targetLang}
+            <Settings className="size-3.5 text-muted-foreground" />
+          </span>
+        </Link>
       </div>
 
       <Tabs defaultValue="text" className="w-full">

@@ -28,10 +28,13 @@ export type TutorReply = {
   xp: number;
 };
 
-function buildSystemPrompt(langName: string, level: string, scenario?: string) {
+function buildSystemPrompt(langName: string, level: string, scenario?: string, student?: string) {
   const scenarioLine = scenario ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.` : "";
+  const studentLine = student
+    ? `\nمعلومات الطالب الشخصية: ${student}\nخصّص المحادثة والأمثلة والتمارين حسب اسمه وعمره وعمله وحياته، ونادِه باسمه، واجعل المواضيع قريبة من واقعه واهتماماته.`
+    : "";
   return `أنت "مدرّس ${langName} الذكي"، مساعد محادثة تعليمي متقدّم للطالب الناطق بالعربية.
-مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).${scenarioLine}
+مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).${scenarioLine}${studentLine}
 
 مهامك في كل رد:
 1) تحدّث مع الطالب بلغة ${langName} بمستوى مناسب لـ ${level} — جُمل قصيرة وواضحة للمبتدئين، وأطول وأعقد للمستويات الأعلى.
@@ -93,6 +96,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         targetLang: z.string().min(2).max(10),
         targetLangName: z.string().min(2).max(40),
         scenario: z.string().max(400).optional(),
+        student: z.string().max(600).optional(),
       })
       .parse(input),
   )
@@ -124,7 +128,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const ordered = (history ?? []).reverse();
 
     const messages = [
-      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel, data.scenario) },
+      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel, data.scenario, data.student) },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
