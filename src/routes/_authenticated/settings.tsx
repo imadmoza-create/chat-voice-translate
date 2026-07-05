@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap, Mail } from "lucide-react";
 import { LANGUAGES, langByCode } from "@/lib/languages";
-import { useAppLang, useUserGender, detectDeviceLang, useNativeLang } from "@/lib/prefs";
+import { useAppLang, useUserGender, detectDeviceLang, useNativeLang, useStudentProfile } from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
