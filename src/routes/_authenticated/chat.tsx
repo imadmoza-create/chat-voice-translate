@@ -297,6 +297,7 @@ function ChatPage() {
           targetLang: lang,
           targetLangName: langName,
           scenario: scenarioById(scenario)?.prompt,
+          student: buildStudentContext(studentProfile) || undefined,
         },
       });
       const id = `a-${Date.now()}`;
