@@ -34,6 +34,18 @@ function SettingsPage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
 
+  const [studentProfile, saveStudentProfile] = useStudentProfile();
+  const [profileForm, setProfileForm] = useState(studentProfile);
+  const [profileSaved, setProfileSaved] = useState(false);
+  useEffect(() => setProfileForm(studentProfile), [studentProfile]);
+
+  function saveProfile() {
+    saveStudentProfile(profileForm);
+    setProfileSaved(true);
+    toast.success("تم حفظ معلوماتك — سيخصّص المدرّس الدروس على أساسها.");
+    setTimeout(() => setProfileSaved(false), 2000);
+  }
+
   async function changeEmail() {
     const email = newEmail.trim();
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
