@@ -4,11 +4,64 @@ import { LANGUAGES } from "@/lib/languages";
 const LANG_KEY = "app_lang";
 const NATIVE_KEY = "app_native_lang";
 const GENDER_KEY = "app_gender";
+const PROFILE_KEY = "app_student_profile";
 const LANG_EVENT = "app-lang-change";
 const NATIVE_EVENT = "app-native-lang-change";
 const GENDER_EVENT = "app-gender-change";
+const PROFILE_EVENT = "app-profile-change";
 
 export type UserGender = "male" | "female";
+
+// معلومات الطالب لتخصيص التدريس على اسمه وعمره وعمله ولمحة عن حياته
+export type StudentProfile = {
+  name: string;
+  age: string;
+  job: string;
+  bio: string;
+};
+
+const EMPTY_PROFILE: StudentProfile = { name: "", age: "", job: "", bio: "" };
+
+export function getStudentProfile(): StudentProfile {
+  if (typeof window === "undefined") return EMPTY_PROFILE;
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    return raw ? { ...EMPTY_PROFILE, ...JSON.parse(raw) } : EMPTY_PROFILE;
+  } catch {
+    return EMPTY_PROFILE;
+  }
+}
+
+export function setStudentProfile(p: StudentProfile) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  window.dispatchEvent(new CustomEvent(PROFILE_EVENT, { detail: p }));
+}
+
+export function useStudentProfile(): [StudentProfile, (p: StudentProfile) => void] {
+  const [profile, setProfile] = useState<StudentProfile>(EMPTY_PROFILE);
+  useEffect(() => {
+    setProfile(getStudentProfile());
+    const handler = () => setProfile(getStudentProfile());
+    window.addEventListener(PROFILE_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(PROFILE_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+  return [profile, setStudentProfile];
+}
+
+// بناء سطر تعريفي بالطالب لإدراجه في تعليمات الذكاء الاصطناعي
+export function buildStudentContext(p: StudentProfile): string {
+  const parts: string[] = [];
+  if (p.name?.trim()) parts.push(`الاسم: ${p.name.trim()}`);
+  if (p.age?.trim()) parts.push(`العمر: ${p.age.trim()}`);
+  if (p.job?.trim()) parts.push(`العمل: ${p.job.trim()}`);
+  if (p.bio?.trim()) parts.push(`لمحة عن حياته: ${p.bio.trim()}`);
+  return parts.join(" | ");
+}
 
 // لغة الجهاز الافتراضية (لغة الهاتف) — تُطابق مع اللغات المدعومة
 export function detectDeviceLang(): string {
