@@ -135,8 +135,24 @@ function SettingsPage() {
         <h1 className="text-2xl font-bold">الإعدادات</h1>
       </div>
 
+      {/* معلومات الحساب */}
+      <div className="space-y-2 rounded-2xl border bg-card p-5">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <UserRound className="size-5 text-primary" /> معلومات الحساب
+        </h2>
+        <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">رقم الحساب المتسلسل</span>
+          <span className="font-bold text-primary">#{account.account_number ?? "—"}</span>
+        </div>
+        <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">رقم الهاتف</span>
+          <span className="font-semibold" dir="ltr">{account.phone || "غير مسجّل"}</span>
+        </div>
+      </div>
+
       {/* البريد الإلكتروني */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
+
         <div className="flex items-center gap-2 font-bold">
           <Mail className="size-5 text-primary" /> البريد الإلكتروني
         </div>
