@@ -66,6 +66,11 @@ function AuthenticatedLayout() {
                 <Bot className="size-4" /> المساعد
               </Button>
             </Link>
+            <Link to="/community">
+              <Button variant={pathname === "/community" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+                <Users className="size-4" /> الدردشة
+              </Button>
+            </Link>
             <Link to="/history">
               <Button variant={pathname === "/history" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
                 <History className="size-4" /> السجل
