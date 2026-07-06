@@ -23,6 +23,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -34,12 +35,17 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
+        if (!/^\+?[0-9\s-]{6,20}$/.test(phone.trim())) {
+          toast.error("أدخل رقم هاتف صحيحاً — رقم الهاتف أساسي للحساب.");
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name },
+            data: { display_name: name, phone: phone.trim() },
           },
         });
         if (error) throw error;
@@ -91,10 +97,16 @@ function AuthPage() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name">الاسم</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" required />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="name">الاسم</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">رقم الهاتف (أساسي للحساب)</Label>
+                <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665xxxxxxxx" required />
+              </div>
+            </>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="email">البريد الإلكتروني</Label>

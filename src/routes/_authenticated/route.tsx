@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import appLogo from "@/assets/app-logo.png";
-import { Languages, History, LogOut, Loader2, GraduationCap, Bot, Trophy, Settings } from "lucide-react";
+import { Languages, History, LogOut, Loader2, GraduationCap, Bot, Trophy, Settings, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -64,6 +64,11 @@ function AuthenticatedLayout() {
             <Link to="/assistant">
               <Button variant={pathname === "/assistant" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
                 <Bot className="size-4" /> المساعد
+              </Button>
+            </Link>
+            <Link to="/community">
+              <Button variant={pathname === "/community" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+                <Users className="size-4" /> الدردشة
               </Button>
             </Link>
             <Link to="/history">
