@@ -35,12 +35,17 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
+        if (!/^\+?[0-9\s-]{6,20}$/.test(phone.trim())) {
+          toast.error("أدخل رقم هاتف صحيحاً — رقم الهاتف أساسي للحساب.");
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name },
+            data: { display_name: name, phone: phone.trim() },
           },
         });
         if (error) throw error;
