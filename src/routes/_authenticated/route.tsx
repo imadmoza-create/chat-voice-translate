@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import appLogo from "@/assets/app-logo.png";
-import { Languages, History, LogOut, Loader2, GraduationCap, Bot, Trophy, Settings } from "lucide-react";
+import { Languages, History, LogOut, Loader2, GraduationCap, Bot, Trophy, Settings, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
