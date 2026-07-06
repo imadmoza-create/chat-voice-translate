@@ -97,10 +97,16 @@ function AuthPage() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name">الاسم</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" required />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="name">الاسم</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">رقم الهاتف (أساسي للحساب)</Label>
+                <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665xxxxxxxx" required />
+              </div>
+            </>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="email">البريد الإلكتروني</Label>
