@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      community_messages: {
+        Row: {
+          account_number: number | null
+          content: string
+          created_at: string
+          display_name: string | null
+          id: string
+          lang: string
+          user_id: string
+        }
+        Insert: {
+          account_number?: number | null
+          content: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          lang: string
+          user_id: string
+        }
+        Update: {
+          account_number?: number | null
+          content?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          lang?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_progress: {
         Row: {
           completed_themes: string[]
@@ -79,19 +109,25 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_number: number
           created_at: string
           display_name: string | null
           id: string
+          phone: string | null
         }
         Insert: {
+          account_number?: number
           created_at?: string
           display_name?: string | null
           id: string
+          phone?: string | null
         }
         Update: {
+          account_number?: number
           created_at?: string
           display_name?: string | null
           id?: string
+          phone?: string | null
         }
         Relationships: []
       }
@@ -127,6 +163,48 @@ export type Database = {
           source_text?: string
           target_lang?: string
           translated_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_bans: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          until: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          until: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          until?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_strikes: {
+        Row: {
+          count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
