@@ -17,6 +17,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAcademyRouteImport } from './routes/_authenticated/academy'
 
@@ -59,6 +60,11 @@ const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/academy': typeof AuthenticatedAcademyRoute
   '/app': typeof AuthenticatedAppRoute
+  '/assistant': typeof AuthenticatedAssistantRoute
   '/chat': typeof AuthenticatedChatRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/learn': typeof AuthenticatedLearnRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/academy': typeof AuthenticatedAcademyRoute
   '/app': typeof AuthenticatedAppRoute
+  '/assistant': typeof AuthenticatedAssistantRoute
   '/chat': typeof AuthenticatedChatRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/learn': typeof AuthenticatedLearnRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/academy': typeof AuthenticatedAcademyRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
+  '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/learn': typeof AuthenticatedLearnRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/academy'
     | '/app'
+    | '/assistant'
     | '/chat'
     | '/history'
     | '/learn'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/academy'
     | '/app'
+    | '/assistant'
     | '/chat'
     | '/history'
     | '/learn'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/academy'
     | '/_authenticated/app'
+    | '/_authenticated/assistant'
     | '/_authenticated/chat'
     | '/_authenticated/history'
     | '/_authenticated/learn'
@@ -207,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assistant': {
+      id: '/_authenticated/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AuthenticatedAssistantRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app': {
       id: '/_authenticated/app'
       path: '/app'
@@ -227,6 +246,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcademyRoute: typeof AuthenticatedAcademyRoute
   AuthenticatedAppRoute: typeof AuthenticatedAppRoute
+  AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedLearnRoute: typeof AuthenticatedLearnRoute
@@ -236,6 +256,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcademyRoute: AuthenticatedAcademyRoute,
   AuthenticatedAppRoute: AuthenticatedAppRoute,
+  AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedLearnRoute: AuthenticatedLearnRoute,
