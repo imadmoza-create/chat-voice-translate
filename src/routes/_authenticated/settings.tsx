@@ -34,6 +34,22 @@ function SettingsPage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
 
+  const [account, setAccount] = useState<{ account_number: number | null; phone: string | null }>({
+    account_number: null,
+    phone: null,
+  });
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("account_number, phone")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => data && setAccount({ account_number: data.account_number, phone: data.phone }));
+  }, [user]);
+
+
+
   const [studentProfile, saveStudentProfile] = useStudentProfile();
   const [profileForm, setProfileForm] = useState(studentProfile);
   const [profileSaved, setProfileSaved] = useState(false);
