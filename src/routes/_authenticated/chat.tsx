@@ -489,7 +489,7 @@ function ChatPage() {
           <div className="flex h-full items-center justify-center">
             <Loader2 className="size-7 animate-spin text-primary" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <div className="flex size-14 items-center justify-center rounded-3xl gradient-primary text-primary-foreground">
               <GraduationCap className="size-7" />
@@ -509,7 +509,7 @@ function ChatPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => {
+          visibleMessages.map((m) => {
             const ex = extras[m.id];
             return (
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
