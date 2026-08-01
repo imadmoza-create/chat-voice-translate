@@ -373,12 +373,31 @@ function ChatPage() {
       setRecording(true);
     } catch {
       setError("يرجى السماح بالوصول إلى الميكروفون.");
+      setLiveMode(false);
     }
   };
+  startRecRef.current = startRecording;
 
   const stopRecording = () => {
     mediaRef.current?.stop();
     setRecording(false);
+  };
+
+  const toggleLive = () => {
+    if (liveMode) {
+      liveRef.current = false;
+      setLiveMode(false);
+      stopSpeaking();
+      if (recording) stopRecording();
+      return;
+    }
+    liveRef.current = true;
+    setLiveMode(true);
+    stopSpeaking();
+    // تحية افتتاحية قصيرة بلغة الهدف ثم يفتح الميكروفون تلقائياً
+    void send(
+      `${LIVE_MARK} ابدأ الآن محادثة صوتية يومية: حيّني بتحية قصيرة جداً بلغة ${langName} واسألني سؤالاً بسيطاً واحداً. لا تشرح أي قواعد إلا إذا طلبت ذلك.`,
+    );
   };
 
   const handleClear = async () => {
@@ -387,6 +406,9 @@ function ChatPage() {
     setExtras({});
     stopSpeaking();
   };
+
+  const visibleMessages = messages.filter((m) => !m.content.startsWith(LIVE_MARK));
+
 
   return (
     <div className="flex h-[calc(100vh-9rem)] flex-col">
