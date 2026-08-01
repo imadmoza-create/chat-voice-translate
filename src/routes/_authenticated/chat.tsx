@@ -316,7 +316,12 @@ function ChatPage() {
       setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
       setLevel(r.level);
       setXp((v) => v + r.xp);
-      if (autoSpeak) speak(r.reply, bcp47, gender);
+      if (autoSpeak || liveRef.current) {
+        speak(r.reply, bcp47, gender, () => {
+          // وضع المحادثة المباشرة: افتح الميكروفون تلقائياً بعد انتهاء المدرّس
+          if (liveRef.current) setTimeout(() => startRecRef.current(), 250);
+        });
+      }
     } catch (e: any) {
       const msg = e?.message?.includes("RATE_LIMIT")
         ? "تم تجاوز حد الطلبات، حاول بعد قليل."
