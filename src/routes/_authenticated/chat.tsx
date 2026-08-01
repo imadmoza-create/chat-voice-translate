@@ -33,12 +33,16 @@ import {
   Sparkles,
   Award,
   X,
+  Radio,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({ meta: [{ title: "المدرّس الذكي — ترجملي" }] }),
   component: ChatPage,
 });
+
+// رسالة تشغيل مخفية لبدء المحادثة الصوتية المباشرة
+const LIVE_MARK = "⟪live⟫";
 
 type Extra = { translation?: string; correction?: Correction | null; xpGain?: number };
 
