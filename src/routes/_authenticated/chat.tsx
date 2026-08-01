@@ -222,6 +222,12 @@ function ChatPage() {
   const pronScores = useRef<number[]>([]);
   const [score, setScore] = useState<ConversationScore | null>(null);
   const [scoring, setScoring] = useState(false);
+  const [liveMode, setLiveMode] = useState(false);
+  const liveRef = useRef(false);
+  const startRecRef = useRef<() => void>(() => {});
+  liveRef.current = liveMode;
+
+
 
   const addPronScore = (acc: number) => {
     pronScores.current.push(acc);
