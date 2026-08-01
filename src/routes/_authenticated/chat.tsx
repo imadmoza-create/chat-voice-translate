@@ -280,6 +280,7 @@ function ChatPage() {
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
+    stopSpeaking(); // مقاطعة: أوقف صوت المدرّس فوراً عند إرسال الطالب
     setError(null);
     setInput("");
     const optimistic: ChatMessage = {
@@ -319,6 +320,7 @@ function ChatPage() {
   };
 
   const startRecording = async () => {
+    stopSpeaking(); // مقاطعة: توقّف عن الكلام بمجرد أن يبدأ الطالب بالتحدّث
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
