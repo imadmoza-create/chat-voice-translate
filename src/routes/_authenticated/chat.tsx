@@ -320,6 +320,7 @@ function ChatPage() {
   };
 
   const startRecording = async () => {
+    stopSpeaking(); // مقاطعة: توقّف عن الكلام بمجرد أن يبدأ الطالب بالتحدّث
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
