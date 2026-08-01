@@ -427,6 +427,16 @@ function ChatPage() {
         </div>
         <div className="flex items-center gap-1">
           <Button
+            variant={liveMode ? "default" : "ghost"}
+            size="icon"
+            className={`rounded-xl ${liveMode ? "gradient-primary text-primary-foreground animate-pulse" : ""}`}
+            title={liveMode ? "إيقاف المحادثة الصوتية المباشرة" : "بدء محادثة صوتية مباشرة"}
+            onClick={toggleLive}
+            disabled={sending || transcribing}
+          >
+            <Radio className="size-4" />
+          </Button>
+          <Button
             variant="ghost"
             size="icon"
             className="rounded-xl"
