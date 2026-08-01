@@ -33,12 +33,16 @@ import {
   Sparkles,
   Award,
   X,
+  Radio,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({ meta: [{ title: "المدرّس الذكي — ترجملي" }] }),
   component: ChatPage,
 });
+
+// رسالة تشغيل مخفية لبدء المحادثة الصوتية المباشرة
+const LIVE_MARK = "⟪live⟫";
 
 type Extra = { translation?: string; correction?: Correction | null; xpGain?: number };
 
@@ -218,6 +222,12 @@ function ChatPage() {
   const pronScores = useRef<number[]>([]);
   const [score, setScore] = useState<ConversationScore | null>(null);
   const [scoring, setScoring] = useState(false);
+  const [liveMode, setLiveMode] = useState(false);
+  const liveRef = useRef(false);
+  const startRecRef = useRef<() => void>(() => {});
+  liveRef.current = liveMode;
+
+
 
   const addPronScore = (acc: number) => {
     pronScores.current.push(acc);
@@ -306,7 +316,12 @@ function ChatPage() {
       setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
       setLevel(r.level);
       setXp((v) => v + r.xp);
-      if (autoSpeak) speak(r.reply, bcp47, gender);
+      if (autoSpeak || liveRef.current) {
+        speak(r.reply, bcp47, gender, () => {
+          // وضع المحادثة المباشرة: افتح الميكروفون تلقائياً بعد انتهاء المدرّس
+          if (liveRef.current) setTimeout(() => startRecRef.current(), 250);
+        });
+      }
     } catch (e: any) {
       const msg = e?.message?.includes("RATE_LIMIT")
         ? "تم تجاوز حد الطلبات، حاول بعد قليل."
@@ -358,12 +373,31 @@ function ChatPage() {
       setRecording(true);
     } catch {
       setError("يرجى السماح بالوصول إلى الميكروفون.");
+      setLiveMode(false);
     }
   };
+  startRecRef.current = startRecording;
 
   const stopRecording = () => {
     mediaRef.current?.stop();
     setRecording(false);
+  };
+
+  const toggleLive = () => {
+    if (liveMode) {
+      liveRef.current = false;
+      setLiveMode(false);
+      stopSpeaking();
+      if (recording) stopRecording();
+      return;
+    }
+    liveRef.current = true;
+    setLiveMode(true);
+    stopSpeaking();
+    // تحية افتتاحية قصيرة بلغة الهدف ثم يفتح الميكروفون تلقائياً
+    void send(
+      `${LIVE_MARK} ابدأ الآن محادثة صوتية يومية: حيّني بتحية قصيرة جداً بلغة ${langName} واسألني سؤالاً بسيطاً واحداً. لا تشرح أي قواعد إلا إذا طلبت ذلك.`,
+    );
   };
 
   const handleClear = async () => {
@@ -372,6 +406,9 @@ function ChatPage() {
     setExtras({});
     stopSpeaking();
   };
+
+  const visibleMessages = messages.filter((m) => !m.content.startsWith(LIVE_MARK));
+
 
   return (
     <div className="flex h-[calc(100vh-9rem)] flex-col">
@@ -389,6 +426,16 @@ function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant={liveMode ? "default" : "ghost"}
+            size="icon"
+            className={`rounded-xl ${liveMode ? "gradient-primary text-primary-foreground animate-pulse" : ""}`}
+            title={liveMode ? "إيقاف المحادثة الصوتية المباشرة" : "بدء محادثة صوتية مباشرة"}
+            onClick={toggleLive}
+            disabled={sending || transcribing}
+          >
+            <Radio className="size-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -442,7 +489,7 @@ function ChatPage() {
           <div className="flex h-full items-center justify-center">
             <Loader2 className="size-7 animate-spin text-primary" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <div className="flex size-14 items-center justify-center rounded-3xl gradient-primary text-primary-foreground">
               <GraduationCap className="size-7" />
@@ -462,7 +509,7 @@ function ChatPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => {
+          visibleMessages.map((m) => {
             const ex = extras[m.id];
             return (
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>

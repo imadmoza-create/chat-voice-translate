@@ -37,8 +37,11 @@ function pickVoice(voices: SpeechSynthesisVoice[], langPrefix: string, gender: V
   return pool[0];
 }
 
-export async function speak(text: string, bcp47: string, gender: VoiceGender) {
-  if (typeof window === "undefined" || !window.speechSynthesis || !text) return;
+export async function speak(text: string, bcp47: string, gender: VoiceGender, onEnd?: () => void) {
+  if (typeof window === "undefined" || !window.speechSynthesis || !text) {
+    onEnd?.();
+    return;
+  }
   window.speechSynthesis.cancel();
   const voices = cachedVoices.length ? cachedVoices : await loadVoices();
   const utter = new SpeechSynthesisUtterance(text);
@@ -47,8 +50,13 @@ export async function speak(text: string, bcp47: string, gender: VoiceGender) {
   if (v) utter.voice = v;
   utter.pitch = gender === "female" ? 1.15 : 0.8;
   utter.rate = 0.98;
+  if (onEnd) {
+    utter.onend = () => onEnd();
+    utter.onerror = () => onEnd();
+  }
   window.speechSynthesis.speak(utter);
 }
+
 
 export function stopSpeaking() {
   if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
