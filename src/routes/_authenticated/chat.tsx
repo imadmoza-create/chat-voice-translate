@@ -13,7 +13,7 @@ import {
   type ConversationScore,
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
-import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
+import { speak, stopSpeaking, startLiveTranscript, type VoiceGender } from "@/lib/speech";
 import { useUserGender, useAppLang, useStudentProfile, buildStudentContext } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
