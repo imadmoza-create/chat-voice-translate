@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { LazyList } from "@/components/LazyList";
+import { usePersistedState } from "@/lib/persisted-state";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,10 +47,10 @@ function LearnCard({
 function LearnPage() {
   const { user } = useAuth();
   const runBatch = useServerFn(translateBatch);
-  const [tab, setTab] = useState<Tab>("words");
+  const [tab, setTab] = usePersistedState<Tab>("learn_tab", "words");
   const [userGender] = useUserGender();
   const [lang] = useAppLang();
-  const [activeCat, setActiveCat] = useState(WORD_CATEGORIES[0].id);
+  const [activeCat, setActiveCat] = usePersistedState<string>("learn_cat", WORD_CATEGORIES[0].id);
   const [mine, setMine] = useState<LearnItem[]>([]);
   const [loadingMine, setLoadingMine] = useState(false);
   const [cache, setCache] = useState<Record<string, string>>({});
@@ -57,7 +59,7 @@ function LearnPage() {
   // الصوت دائماً عكس جنس المستخدم
   const voiceGender: VoiceGender = userGender === "male" ? "female" : "male";
 
-  const cat = WORD_CATEGORIES.find((c) => c.id === activeCat)!;
+  const cat = WORD_CATEGORIES.find((c) => c.id === activeCat) ?? WORD_CATEGORIES[0];
 
   // مجموعة العناصر المعروضة حالياً (للترجمة وللاختبار)
   const visibleItems: LearnItem[] = useMemo(() => {
@@ -158,16 +160,22 @@ function LearnPage() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {cat.items.map((it) => <LearnCard key={it.en} item={it} lang={lang} cache={cache} voiceGender={voiceGender} />)}
-          </div>
+          <LazyList
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            items={cat.items}
+            keyOf={(it) => it.en}
+            renderItem={(it) => <LearnCard item={it} lang={lang} cache={cache} voiceGender={voiceGender} />}
+          />
         </>
       )}
 
       {tab === "pronouns" && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {PRONOUNS.map((it) => <LearnCard key={it.en + it.ar} item={it} lang={lang} cache={cache} voiceGender={voiceGender} />)}
-        </div>
+        <LazyList
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+          items={PRONOUNS}
+          keyOf={(it) => it.en + it.ar}
+          renderItem={(it) => <LearnCard item={it} lang={lang} cache={cache} voiceGender={voiceGender} />}
+        />
       )}
 
       {tab === "mine" && (
@@ -176,9 +184,12 @@ function LearnPage() {
         ) : mine.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-card py-16 text-center text-muted-foreground">لا توجد كلمات بعد — ابدأ بالترجمة وستظهر هنا للمراجعة.</div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {mine.map((it, i) => <LearnCard key={it.en + i} item={it} lang={lang} cache={cache} voiceGender={voiceGender} />)}
-          </div>
+          <LazyList
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            items={mine}
+            keyOf={(it, i) => it.en + i}
+            renderItem={(it) => <LearnCard item={it} lang={lang} cache={cache} voiceGender={voiceGender} />}
+          />
         )
       )}
 
