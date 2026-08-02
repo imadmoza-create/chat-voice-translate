@@ -96,6 +96,7 @@ export const Route = createFileRoute("/api/voice-chat")({
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
         let full = "";
+        let sseBuf = "";
         const reader = upstream.body.getReader();
 
         const stream = new ReadableStream({
@@ -111,7 +112,10 @@ export const Route = createFileRoute("/api/voice-chat")({
               return;
             }
             const chunk = decoder.decode(value, { stream: true });
-            for (const line of chunk.split("\n")) {
+            sseBuf += chunk;
+            const lines = sseBuf.split("\n");
+            sseBuf = lines.pop() ?? "";
+            for (const line of lines) {
               if (!line.startsWith("data: ")) continue;
               const payload = line.slice(6).trim();
               if (!payload || payload === "[DONE]") continue;
