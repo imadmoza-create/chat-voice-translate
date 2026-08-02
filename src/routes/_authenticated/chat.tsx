@@ -13,7 +13,9 @@ import {
   type ConversationScore,
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
-import { speak, stopSpeaking, startLiveTranscript, type VoiceGender } from "@/lib/speech";
+import { speak, stopSpeaking, startLiveTranscript, createSpeechStreamer, startBargeInDetector, type VoiceGender } from "@/lib/speech";
+import { supabase } from "@/integrations/supabase/client";
+import { usePersistedState } from "@/lib/persisted-state";
 import { useUserGender, useAppLang, useStudentProfile, buildStudentContext } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
@@ -221,7 +223,7 @@ function ChatPage() {
   const [userGender] = useUserGender();
   const gender: VoiceGender = userGender === "male" ? "female" : "male";
   const [error, setError] = useState<string | null>(null);
-  const [scenario, setScenario] = useState<string>("free");
+  const [scenario, setScenario] = usePersistedState<string>("chat_scenario", "free");
   const pronScores = useRef<number[]>([]);
   const [score, setScore] = useState<ConversationScore | null>(null);
   const [scoring, setScoring] = useState(false);
@@ -337,8 +339,112 @@ function ChatPage() {
     }
   };
 
+  // ============ الوضع الصوتي: بثّ منخفض التأخير ============
+  const streamerRef = useRef<ReturnType<typeof createSpeechStreamer> | null>(null);
+  const stopBargeRef = useRef<() => void>(() => {});
+
+  const stopAiAudio = () => {
+    streamerRef.current?.cancel();
+    streamerRef.current = null;
+    stopBargeRef.current();
+    stopBargeRef.current = () => {};
+    stopSpeaking();
+  };
+
+  const sendVoiceStreaming = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    stopAiAudio();
+    setError(null);
+    setInput("");
+    setMessages((m) => [
+      ...m,
+      { id: `tmp-${Date.now()}`, role: "user", content: trimmed, created_at: new Date().toISOString() },
+    ]);
+    setSending(true);
+    const id = `a-${Date.now()}`;
+    let acc = "";
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("AUTH");
+      const res = await fetch("/api/voice-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          text: trimmed,
+          targetLang: lang,
+          targetLangName: langName,
+          scenario: scenarioById(scenario)?.prompt,
+          student: buildStudentContext(studentProfile) || undefined,
+        }),
+      });
+      if (res.status === 429) throw new Error("RATE_LIMIT");
+      if (res.status === 402) throw new Error("CREDITS");
+      if (!res.ok || !res.body) throw new Error("AI");
+
+      // ابدأ نطق الصوت فور وصول أول جملة بدون انتظار الردّ الكامل
+      const streamer = createSpeechStreamer(bcp47, gender, () => {
+        streamerRef.current = null;
+        stopBargeRef.current();
+        stopBargeRef.current = () => {};
+        if (liveRef.current) setTimeout(() => startRecRef.current(), 200);
+      });
+      streamerRef.current = streamer;
+      // مقاطعة تلقائية: أوقف صوت المدرّس لحظة بدء الطالب بالكلام
+      void startBargeInDetector(() => {
+        if (!liveRef.current) return;
+        stopAiAudio();
+        startRecRef.current();
+      }).then((stop) => {
+        if (streamerRef.current === streamer) stopBargeRef.current = stop;
+        else stop();
+      });
+
+      setMessages((m) => [...m, { id, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+      setSending(false);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content;
+            if (typeof delta === "string" && delta) {
+              acc += delta;
+              streamer.push(delta);
+              setMessages((m) => m.map((x) => (x.id === id ? { ...x, content: acc } : x)));
+            }
+          } catch {
+            /* تجاهل الأجزاء غير المكتملة */
+          }
+        }
+      }
+      streamer.end();
+    } catch (e: any) {
+      const msg = e?.message?.includes("RATE_LIMIT")
+        ? "تم تجاوز حد الطلبات، حاول بعد قليل."
+        : e?.message?.includes("CREDITS")
+          ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
+          : "حدث خطأ أثناء المحادثة الصوتية.";
+      setError(msg);
+      stopAiAudio();
+    } finally {
+      setSending(false);
+    }
+  };
+
   const startRecording = async () => {
-    stopSpeaking(); // مقاطعة: توقّف عن الكلام بمجرد أن يبدأ الطالب بالتحدّث
+    stopAiAudio(); // مقاطعة: توقّف عن الكلام بمجرد أن يبدأ الطالب بالتحدّث
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -365,7 +471,7 @@ function ChatPage() {
         try {
           const dataUrl = await blobToDataUrl(blob);
           const { text } = await transcribe({ data: { audio: dataUrl, mime: rec.mimeType, lang } });
-          if (text) await send(text);
+          if (text) await (liveRef.current ? sendVoiceStreaming(text) : send(text));
           else setError("لم أتمكّن من فهم الصوت، حاول مجدداً.");
         } catch {
           setError("تعذّر تحويل الصوت إلى نص.");
@@ -398,7 +504,7 @@ function ChatPage() {
     if (liveMode) {
       liveRef.current = false;
       setLiveMode(false);
-      stopSpeaking();
+      stopAiAudio();
       if (recording) stopRecording();
       return;
     }
@@ -406,7 +512,7 @@ function ChatPage() {
     setLiveMode(true);
     stopSpeaking();
     // تحية افتتاحية قصيرة بلغة الهدف ثم يفتح الميكروفون تلقائياً
-    void send(
+    void sendVoiceStreaming(
       `${LIVE_MARK} ابدأ الآن محادثة صوتية يومية: حيّني بتحية قصيرة جداً بلغة ${langName} واسألني سؤالاً بسيطاً واحداً. لا تشرح أي قواعد إلا إذا طلبت ذلك.`,
     );
   };
