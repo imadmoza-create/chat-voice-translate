@@ -211,7 +211,10 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recording, setRecording] = useState(false);
+  const [liveText, setLiveText] = useState("");
+  const stopLiveRef = useRef<() => void>(() => {});
   const [transcribing, setTranscribing] = useState(false);
+
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [level, setLevel] = useState("A1");
   const [xp, setXp] = useState(0);
