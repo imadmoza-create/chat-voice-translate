@@ -126,3 +126,99 @@ export function startLiveTranscript(bcp47: string, onText: (text: string) => voi
   };
 }
 
+
+// ---- بثّ صوتي منخفض التأخير: انطق الجمل فور اكتمالها أثناء وصول البثّ ----
+export function createSpeechStreamer(bcp47: string, gender: VoiceGender, onDone?: () => void) {
+  let buffer = "";
+  let speaking = false;
+  const queue: string[] = [];
+  let finished = false;
+  let cancelled = false;
+
+  const next = () => {
+    if (cancelled) return;
+    const chunk = queue.shift();
+    if (!chunk) {
+      speaking = false;
+      if (finished) onDone?.();
+      return;
+    }
+    speaking = true;
+    void speak(chunk, bcp47, gender, next);
+  };
+
+  const flushSentences = (force: boolean) => {
+    const re = /[^.!?…\n]*[.!?…\n]+/g;
+    let m: RegExpExecArray | null;
+    let lastIndex = 0;
+    while ((m = re.exec(buffer))) {
+      const s = m[0].trim();
+      if (s) queue.push(s);
+      lastIndex = re.lastIndex;
+    }
+    buffer = buffer.slice(lastIndex);
+    if (force && buffer.trim()) {
+      queue.push(buffer.trim());
+      buffer = "";
+    }
+    if (!speaking) next();
+  };
+
+  return {
+    push(delta: string) {
+      if (cancelled) return;
+      buffer += delta;
+      flushSentences(false);
+    },
+    end() {
+      finished = true;
+      flushSentences(true);
+      if (!speaking && queue.length === 0) onDone?.();
+    },
+    cancel() {
+      cancelled = true;
+      queue.length = 0;
+      buffer = "";
+      stopSpeaking();
+    },
+  };
+}
+
+/**
+ * كشف مقاطعة الطالب: يراقب مستوى الميكروفون وينادي onSpeech فور بدء الكلام.
+ * يُستخدم لإيقاف صوت المدرّس فوراً.
+ */
+export async function startBargeInDetector(onSpeech: () => void): Promise<() => void> {
+  if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) return () => {};
+  let stopped = false;
+  let stream: MediaStream | null = null;
+  let ctx: AudioContext | null = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (stopped) return;
+      analyser.getByteTimeDomainData(buf);
+      let peak = 0;
+      for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
+      if (peak > 18) {
+        onSpeech();
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  } catch {
+    return () => {};
+  }
+  return () => {
+    stopped = true;
+    stream?.getTracks().forEach((t) => t.stop());
+    void ctx?.close();
+  };
+}
