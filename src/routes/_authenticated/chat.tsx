@@ -354,9 +354,11 @@ function ChatPage() {
       };
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        stopLiveRef.current();
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
         if (blob.size < 1200) {
           setError("التسجيل قصير جداً، حاول مجدداً.");
+          setLiveText("");
           return;
         }
         setTranscribing(true);
@@ -369,11 +371,15 @@ function ChatPage() {
           setError("تعذّر تحويل الصوت إلى نص.");
         } finally {
           setTranscribing(false);
+          setLiveText("");
         }
       };
       mediaRef.current = rec;
       rec.start();
       setRecording(true);
+      // عرض لحظي للنص أثناء التحدّث
+      setLiveText("");
+      stopLiveRef.current = startLiveTranscript(bcp47, (t) => setLiveText(t));
     } catch {
       setError("يرجى السماح بالوصول إلى الميكروفون.");
       setLiveMode(false);
@@ -382,9 +388,11 @@ function ChatPage() {
   startRecRef.current = startRecording;
 
   const stopRecording = () => {
+    stopLiveRef.current();
     mediaRef.current?.stop();
     setRecording(false);
   };
+
 
   const toggleLive = () => {
     if (liveMode) {
