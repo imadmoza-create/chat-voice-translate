@@ -73,3 +73,56 @@ export function getSpeechRecognition(): any | null {
 export function isSpeechRecognitionSupported() {
   return !!getSpeechRecognition();
 }
+
+/**
+ * عرض لحظي للنص أثناء التحدّث (interim results).
+ * يعمل بالتوازي مع التسجيل، ويُرجع دالة إيقاف.
+ */
+export function startLiveTranscript(bcp47: string, onText: (text: string) => void): () => void {
+  const SRClass = getSpeechRecognition();
+  if (!SRClass) return () => {};
+  let stopped = false;
+  let rec: any;
+  try {
+    rec = new SRClass();
+  } catch {
+    return () => {};
+  }
+  rec.lang = bcp47;
+  rec.continuous = true;
+  rec.interimResults = true;
+  let finalText = "";
+  rec.onresult = (ev: any) => {
+    let interim = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      if (r.isFinal) finalText += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    onText((finalText + " " + interim).trim());
+  };
+  rec.onerror = () => {};
+  rec.onend = () => {
+    if (!stopped) {
+      try {
+        rec.start();
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+  try {
+    rec.start();
+  } catch {
+    /* ignore */
+  }
+  return () => {
+    stopped = true;
+    try {
+      rec.stop();
+    } catch {
+      /* ignore */
+    }
+  };
+}
+

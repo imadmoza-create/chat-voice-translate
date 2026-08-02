@@ -13,7 +13,7 @@ import {
   type ConversationScore,
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
-import { speak, stopSpeaking, type VoiceGender } from "@/lib/speech";
+import { speak, stopSpeaking, startLiveTranscript, type VoiceGender } from "@/lib/speech";
 import { useUserGender, useAppLang, useStudentProfile, buildStudentContext } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
@@ -211,7 +211,10 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recording, setRecording] = useState(false);
+  const [liveText, setLiveText] = useState("");
+  const stopLiveRef = useRef<() => void>(() => {});
   const [transcribing, setTranscribing] = useState(false);
+
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [level, setLevel] = useState("A1");
   const [xp, setXp] = useState(0);
@@ -351,9 +354,11 @@ function ChatPage() {
       };
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        stopLiveRef.current();
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
         if (blob.size < 1200) {
           setError("التسجيل قصير جداً، حاول مجدداً.");
+          setLiveText("");
           return;
         }
         setTranscribing(true);
@@ -366,11 +371,15 @@ function ChatPage() {
           setError("تعذّر تحويل الصوت إلى نص.");
         } finally {
           setTranscribing(false);
+          setLiveText("");
         }
       };
       mediaRef.current = rec;
       rec.start();
       setRecording(true);
+      // عرض لحظي للنص أثناء التحدّث
+      setLiveText("");
+      stopLiveRef.current = startLiveTranscript(bcp47, (t) => setLiveText(t));
     } catch {
       setError("يرجى السماح بالوصول إلى الميكروفون.");
       setLiveMode(false);
@@ -379,9 +388,11 @@ function ChatPage() {
   startRecRef.current = startRecording;
 
   const stopRecording = () => {
+    stopLiveRef.current();
     mediaRef.current?.stop();
     setRecording(false);
   };
+
 
   const toggleLive = () => {
     if (liveMode) {
@@ -641,7 +652,21 @@ function ChatPage() {
             );
           })
         )}
+        {recording && (
+          <div className="flex justify-end">
+            <div className="max-w-[85%] rounded-2xl border border-dashed border-primary/50 bg-primary/5 px-4 py-2.5 text-sm">
+              <div className="mb-1 flex items-center gap-2 text-xs text-primary">
+                <span className="inline-block size-2 animate-pulse rounded-full bg-destructive" />
+                جارٍ الاستماع...
+              </div>
+              <p dir="auto" className="whitespace-pre-wrap text-foreground/90">
+                {liveText || "تحدّث الآن وسيظهر كلامك هنا لحظياً..."}
+              </p>
+            </div>
+          </div>
+        )}
         {(sending || transcribing) && (
+
           <div className="flex justify-start">
             <div className="flex items-center gap-2 rounded-2xl border bg-card px-4 py-2.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
