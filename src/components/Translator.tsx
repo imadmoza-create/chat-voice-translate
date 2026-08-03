@@ -4,9 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
-import { useUserGender, useAppLang } from "@/lib/prefs";
+import { useUserGender, useAppLang, useNativeLang } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export function Translator() {
   const doText = useServerFn(translateText);
 
   const [targetLang] = useAppLang();
+  const [nativeLang] = useNativeLang();
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,8 @@ export function Translator() {
   const recognitionRef = useRef<any>(null);
 
   const targetMeta = langByCode(targetLang);
+  const nativeMeta = langByCode(nativeLang);
+  const nativeBcp47 = nativeMeta?.bcp47 ?? "ar-SA";
 
   useEffect(() => () => stopSpeaking(), []);
 
