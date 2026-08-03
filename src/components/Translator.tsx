@@ -4,9 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { LANGUAGES, langByCode } from "@/lib/languages";
+import { langByCode } from "@/lib/languages";
 import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
-import { useUserGender, useAppLang } from "@/lib/prefs";
+import { useUserGender, useAppLang, useNativeLang } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export function Translator() {
   const doText = useServerFn(translateText);
 
   const [targetLang] = useAppLang();
+  const [nativeLang] = useNativeLang();
   const [text, setText] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,8 @@ export function Translator() {
   const recognitionRef = useRef<any>(null);
 
   const targetMeta = langByCode(targetLang);
+  const nativeMeta = langByCode(nativeLang);
+  const nativeBcp47 = nativeMeta?.bcp47 ?? "ar-SA";
 
   useEffect(() => () => stopSpeaking(), []);
 
@@ -83,7 +86,7 @@ export function Translator() {
     }
     const SR = getSpeechRecognition();
     const rec = new SR();
-    rec.lang = "ar-SA";
+    rec.lang = nativeBcp47;
     rec.continuous = false;
     rec.interimResults = true;
     rec.onresult = (e: any) => {
@@ -125,8 +128,9 @@ export function Translator() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">الترجمة الذكية</h1>
         <Link to="/settings" className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">إلى:</span>
           <span className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 text-sm font-medium">
+            {nativeMeta?.nameAr ?? nativeLang}
+            <span className="text-muted-foreground">←</span>
             {targetMeta?.nameAr ?? targetLang}
             <Settings className="size-3.5 text-muted-foreground" />
           </span>
@@ -177,6 +181,8 @@ export function Translator() {
             targetLangName={targetMeta?.name ?? targetLang}
             targetBcp47={targetMeta?.bcp47 ?? "en-US"}
             gender={gender}
+            srcLang={nativeBcp47}
+            srcLangName={nativeMeta?.nameAr ?? nativeLang}
           />
         </TabsContent>
 
@@ -243,13 +249,12 @@ type Turn = { source: string; translation: string };
 
 // وضع المتحدّث الحر: استماع مستمر، يترجم كل جملة وينطقها تلقائياً.
 function SpeakerMode({
-  targetLangName, targetBcp47, gender,
-}: { targetLangName: string; targetBcp47: string; gender: VoiceGender }) {
+  targetLangName, targetBcp47, gender, srcLang, srcLangName,
+}: { targetLangName: string; targetBcp47: string; gender: VoiceGender; srcLang: string; srcLangName: string }) {
   const doText = useServerFn(translateText);
   const [active, setActive] = useState(false);
   const [interim, setInterim] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [srcLang, setSrcLang] = useState("ar-SA");
   const recRef = useRef<any>(null);
   const activeRef = useRef(false);
 
@@ -296,12 +301,13 @@ function SpeakerMode({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 rounded-2xl border bg-card p-4">
-        <div className="flex items-center gap-2 text-sm">
+        <Link to="/settings" className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">لغتك:</span>
-          <select value={srcLang} onChange={(e) => setSrcLang(e.target.value)} disabled={active} className="rounded-xl border bg-background px-2 py-1">
-            {LANGUAGES.map((l) => <option key={l.code} value={l.bcp47}>{l.nameAr}</option>)}
-          </select>
-        </div>
+          <span className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 font-medium">
+            {srcLangName}
+            <Settings className="size-3.5 text-muted-foreground" />
+          </span>
+        </Link>
         <button
           onClick={active ? stop : start}
           className={`flex size-14 items-center justify-center rounded-full text-primary-foreground shadow-glow transition-transform hover:scale-105 ${active ? "gradient-accent animate-pulse" : "gradient-primary"}`}
