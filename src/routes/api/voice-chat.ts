@@ -76,6 +76,7 @@ export const Route = createFileRoute("/api/voice-chat")({
           body: JSON.stringify({
             model: MODEL,
             stream: true,
+            temperature: 0.6,
             max_completion_tokens: MAX_VOICE_TOKENS,
             messages: [
               {
