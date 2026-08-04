@@ -237,6 +237,7 @@ type Shared = { lang: string; langName: string; bcp47: string; voiceGender: Voic
 
 // ===================== درس موضوع =====================
 function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: Shared & { theme: Theme }) {
+  const nativeName = useNativeLangName();
   const runLesson = useServerFn(generateLesson);
   const runAddReviews = useServerFn(addReviews);
   const [loading, setLoading] = useState(true);
@@ -328,6 +329,7 @@ function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: 
 
 // ===================== مركز التمارين =====================
 function ExerciseHub({ theme, langName, bcp47, voiceGender, level, award }: Shared & { theme: Theme }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateExercise);
   const [type, setType] = useState<"listening" | "writing" | "speaking" | "grammar" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -446,6 +448,7 @@ const VERB_CATEGORIES = [
   "الأفعال المساعدة والنمطية",
 ];
 function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateVerbPack);
   const [cat, setCat] = useState(VERB_CATEGORIES[0]);
   const [loading, setLoading] = useState(false);
@@ -490,6 +493,7 @@ function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
 
 // ===================== اختبار المستوى =====================
 function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { onPromote: (l: CEFRLevel) => void }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateLevelTest);
   const [loading, setLoading] = useState(true);
   const [qs, setQs] = useState<any[]>([]);
@@ -543,6 +547,7 @@ function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { o
 
 // ===================== تحديد المستوى =====================
 function PlacementView({ langName, onSet }: { lang: string; langName: string; bcp47: string; voiceGender: VoiceGender; onSet: (l: CEFRLevel) => void }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(placementTest);
   const [loading, setLoading] = useState(true);
   const [qs, setQs] = useState<any[]>([]);
@@ -647,6 +652,7 @@ function ReviewView({ lang, bcp47, voiceGender, award }: { lang: string; bcp47: 
 
 // ===================== الخطة اليومية =====================
 function PlanView({ langName, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateDailyPlan);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -673,6 +679,7 @@ function PlanView({ langName, level }: Shared) {
 // ===================== الحوارات =====================
 const SCENARIOS = ["محادثة يومية في المقهى", "محادثة عمل واجتماع", "مقابلة وظيفية", "في المطار والسفر", "عند الطبيب", "التسوق"];
 function DialogueView({ langName, bcp47, voiceGender, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateDialogue);
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [loading, setLoading] = useState(false);

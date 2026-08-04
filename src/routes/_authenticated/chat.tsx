@@ -16,7 +16,7 @@ import { getProgress } from "@/lib/academy.functions";
 import { speak, stopSpeaking, startLiveTranscript, createSpeechStreamer, startBargeInDetector, type VoiceGender } from "@/lib/speech";
 import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/lib/persisted-state";
-import { useUserGender, useAppLang, useStudentProfile, buildStudentContext } from "@/lib/prefs";
+import { useUserGender, useAppLang, useNativeLangName, useStudentProfile, buildStudentContext } from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { assessPronunciation, type PronunciationResult } from "@/lib/pronunciation";
@@ -200,6 +200,7 @@ function ChatPage() {
   const runAssess = useServerFn(assessConversation);
 
   const [lang] = useAppLang();
+  const nativeName = useNativeLangName();
   const [studentProfile] = useStudentProfile();
   const langMeta = langByCode(lang);
   const langName = langMeta?.name ?? "English";
@@ -248,7 +249,8 @@ function ChatPage() {
           ? pronScores.current.reduce((a, b) => a + b, 0) / pronScores.current.length
           : undefined;
       const r = await runAssess({
-        data: { targetLang: lang, targetLangName: langName, pronunciationScore: avg },
+        data: { targetLang: lang, targetLangName: langName,
+          nativeLangName: nativeName, pronunciationScore: avg },
       });
       setScore(r);
       setLevel(r.level);
@@ -312,6 +314,7 @@ function ChatPage() {
           text: trimmed,
           targetLang: lang,
           targetLangName: langName,
+          nativeLangName: nativeName,
           scenario: scenarioById(scenario)?.prompt,
           student: buildStudentContext(studentProfile) || undefined,
         },
@@ -375,6 +378,7 @@ function ChatPage() {
           text: trimmed,
           targetLang: lang,
           targetLangName: langName,
+          nativeLangName: nativeName,
           scenario: scenarioById(scenario)?.prompt,
           student: buildStudentContext(studentProfile) || undefined,
         }),
