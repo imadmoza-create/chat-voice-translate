@@ -247,7 +247,7 @@ function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: 
     (async () => {
       setLoading(true);
       try {
-        const r = await runLesson({ data: { level, theme: theme.title, targetLang: langName } });
+        const r = await runLesson({ data: { level, theme: theme.title, targetLang: langName, nativeLang: nativeName } });
         setData(r);
         if (Array.isArray(r.vocab) && r.vocab.length) {
           runAddReviews({ data: { lang, level, words: r.vocab.slice(0, 20).map((v: any) => ({ word: String(v.word), translation: String(v.translation) })) } }).catch(() => {});
@@ -453,7 +453,7 @@ function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
 
   const load = async (c: string) => {
     setCat(c); setLoading(true); setVerbs([]);
-    try { const r = await run({ data: { level, category: c, targetLang: langName } }); setVerbs(r.verbs ?? []); }
+    try { const r = await run({ data: { level, category: c, targetLang: langName, nativeLang: nativeName } }); setVerbs(r.verbs ?? []); }
     catch (e) { aiError(e); } finally { setLoading(false); }
   };
   useEffect(() => { load(VERB_CATEGORIES[0]); /* eslint-disable-next-line */ }, [langName, level]);
@@ -499,7 +499,7 @@ function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { o
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    (async () => { setLoading(true); try { const r = await run({ data: { level, targetLang: langName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { const r = await run({ data: { level, targetLang: langName, nativeLang: nativeName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, [level, lang]);
 
@@ -552,7 +552,7 @@ function PlacementView({ langName, onSet }: { lang: string; langName: string; bc
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    (async () => { setLoading(true); try { const r = await run({ data: { targetLang: langName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { const r = await run({ data: { targetLang: langName, nativeLang: nativeName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, []);
 
@@ -651,7 +651,7 @@ function PlanView({ langName, level }: Shared) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   useEffect(() => {
-    (async () => { setLoading(true); try { setData(await run({ data: { level, targetLang: langName } })); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { setData(await run({ data: { level, targetLang: langName, nativeLang: nativeName } })); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, [langName, level]);
   if (loading) return <Center />;
