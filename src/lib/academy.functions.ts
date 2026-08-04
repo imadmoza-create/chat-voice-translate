@@ -43,20 +43,22 @@ const LessonInput = z.object({
   level: z.string().min(2).max(3),
   theme: z.string().min(1).max(80),
   targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
 });
 
 export const generateLesson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => LessonInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `You are an expert ${data.targetLang} teacher creating a CEFR ${data.level} lesson for an Arabic-speaking learner. ${JSON_RULE}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `You are an expert ${data.targetLang} teacher creating a CEFR ${data.level} lesson for an ${nl}-speaking learner. ${JSON_RULE}
 Use this exact shape:
-{"vocab":[{"word":"<word in ${data.targetLang}>","translation":"<Arabic meaning>","example":"<example sentence in ${data.targetLang}>","exampleTranslation":"<Arabic translation of the example>"}],
-"grammar":{"title":"<grammar point title in Arabic>","explanation":"<clear Arabic explanation>","points":["<rule in Arabic with a ${data.targetLang} example>"]},
-"connectors":[{"word":"<connector word in ${data.targetLang}>","meaning":"<Arabic meaning>","example":"<short example in ${data.targetLang}>"}],
-"phrases":[{"text":"<useful daily phrase in ${data.targetLang}>","translation":"<Arabic translation>"}]}
+{"vocab":[{"word":"<word in ${data.targetLang}>","translation":"<${nl} meaning>","example":"<example sentence in ${data.targetLang}>","exampleTranslation":"<${nl} translation of the example>"}],
+"grammar":{"title":"<grammar point title in ${nl}>","explanation":"<clear ${nl} explanation>","points":["<rule in ${nl} with a ${data.targetLang} example>"]},
+"connectors":[{"word":"<connector word in ${data.targetLang}>","meaning":"<${nl} meaning>","example":"<short example in ${data.targetLang}>"}],
+"phrases":[{"text":"<useful daily phrase in ${data.targetLang}>","translation":"<${nl} translation>"}]}
 Give 14 vocab items, 4 grammar points, 6 connectors, 6 phrases. Vocabulary must match the topic and ${data.level} difficulty.`;
-    const obj = await callJson(sys, `Topic (in Arabic): ${data.theme}. Level: ${data.level}. Target language: ${data.targetLang}.`);
+    const obj = await callJson(sys, `Topic (in ${nl}): ${data.theme}. Level: ${data.level}. Target language: ${data.targetLang}.`);
     return {
       vocab: Array.isArray(obj.vocab) ? obj.vocab.slice(0, 20) : [],
       grammar: obj.grammar ?? { title: "", explanation: "", points: [] },
@@ -70,17 +72,19 @@ const VerbsInput = z.object({
   level: z.string().min(2).max(3),
   category: z.string().min(1).max(60),
   targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
 });
 
 export const generateVerbPack = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => VerbsInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `You are a ${data.targetLang} verb expert teaching an Arabic speaker at CEFR ${data.level}. ${JSON_RULE}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `You are a ${data.targetLang} verb expert teaching an ${nl} speaker at CEFR ${data.level}. ${JSON_RULE}
 Shape:
-{"verbs":[{"infinitive":"<verb in ${data.targetLang}>","translation":"<Arabic meaning>","type":"<one of: عادي|منعكس|مركّب|شاذ>","tenses":[{"tense":"<tense name in Arabic>","forms":[{"pronoun":"<pronoun in ${data.targetLang}>","form":"<conjugated form>"}],"example":"<example sentence in ${data.targetLang}> — <Arabic translation>"}]}]}
+{"verbs":[{"infinitive":"<verb in ${data.targetLang}>","translation":"<${nl} meaning>","type":"<one of: عادي|منعكس|مركّب|شاذ>","tenses":[{"tense":"<tense name in ${nl}>","forms":[{"pronoun":"<pronoun in ${data.targetLang}>","form":"<conjugated form>"}],"example":"<example sentence in ${data.targetLang}> — <${nl} translation>"}]}]}
 Return 6 verbs of the requested category. For each verb include 3 important tenses (present, past, future or the most relevant), each with full person conjugation.`;
-    const obj = await callJson(sys, `Verb category (Arabic): ${data.category}. Level: ${data.level}. Language: ${data.targetLang}.`);
+    const obj = await callJson(sys, `Verb category (${nl}): ${data.category}. Level: ${data.level}. Language: ${data.targetLang}.`);
     return { verbs: Array.isArray(obj.verbs) ? obj.verbs.slice(0, 10) : [] };
   });
 
@@ -89,6 +93,7 @@ const ExerciseInput = z.object({
   level: z.string().min(2).max(3),
   theme: z.string().min(1).max(80),
   targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
   type: z.enum(["listening", "writing", "speaking", "grammar"]),
 });
 
@@ -96,17 +101,18 @@ export const generateExercise = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ExerciseInput.parse(i))
   .handler(async ({ data }) => {
+    const nl = data.nativeLang ?? "Arabic";
     let shape = "";
     if (data.type === "listening") {
-      shape = `{"items":[{"audioText":"<sentence in ${data.targetLang} to be heard>","prompt":"<comprehension question in Arabic>","options":["<opt in ${data.targetLang} or Arabic>"],"correct":"<correct option>"}]}  (6 items)`;
+      shape = `{"items":[{"audioText":"<sentence in ${data.targetLang} to be heard>","prompt":"<comprehension question in ${nl}>","options":["<opt in ${data.targetLang} or ${nl}>"],"correct":"<correct option>"}]}  (6 items)`;
     } else if (data.type === "grammar") {
-      shape = `{"items":[{"prompt":"<fill-in / choose question in ${data.targetLang}>","options":["..."],"correct":"<correct option>","explanation":"<Arabic explanation>"}]}  (8 items)`;
+      shape = `{"items":[{"prompt":"<fill-in / choose question in ${data.targetLang}>","options":["..."],"correct":"<correct option>","explanation":"<${nl} explanation>"}]}  (8 items)`;
     } else {
       // writing / speaking
-      shape = `{"items":[{"task":"<task instruction in Arabic>","sample":"<model answer in ${data.targetLang}>","sampleTranslation":"<Arabic translation>"}]}  (5 items)`;
+      shape = `{"items":[{"task":"<task instruction in ${nl}>","sample":"<model answer in ${data.targetLang}>","sampleTranslation":"<${nl} translation>"}]}  (5 items)`;
     }
-    const sys = `You build CEFR ${data.level} ${data.type} exercises in ${data.targetLang} for an Arabic speaker. ${JSON_RULE} Shape: ${shape}`;
-    const obj = await callJson(sys, `Topic (Arabic): ${data.theme}. Level: ${data.level}. Type: ${data.type}. Language: ${data.targetLang}.`);
+    const sys = `You build CEFR ${data.level} ${data.type} exercises in ${data.targetLang} for an ${nl} speaker. ${JSON_RULE} Shape: ${shape}`;
+    const obj = await callJson(sys, `Topic (${nl}): ${data.theme}. Level: ${data.level}. Type: ${data.type}. Language: ${data.targetLang}.`);
     return { items: Array.isArray(obj.items) ? obj.items.slice(0, 10) : [] };
   });
 
@@ -114,13 +120,15 @@ export const generateExercise = createServerFn({ method: "POST" })
 const TestInput = z.object({
   level: z.string().min(2).max(3),
   targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
 });
 
 export const generateLevelTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => TestInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `Create a CEFR ${data.level} mixed test in ${data.targetLang} for an Arabic speaker. ${JSON_RULE}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `Create a CEFR ${data.level} mixed test in ${data.targetLang} for an ${nl} speaker. ${JSON_RULE}
 Shape: {"questions":[{"skill":"<one of: مفردات|قواعد|استماع|قراءة>","prompt":"<question, may be in ${data.targetLang}>","options":["..."],"correct":"<exact correct option>"}]}
 Return 15 multiple-choice questions covering vocabulary, grammar, reading and listening comprehension at ${data.level}.`;
     const obj = await callJson(sys, `Level: ${data.level}. Language: ${data.targetLang}.`);
@@ -128,13 +136,17 @@ Return 15 multiple-choice questions covering vocabulary, grammar, reading and li
   });
 
 // ===================== اختبار تحديد المستوى =====================
-const PlacementInput = z.object({ targetLang: z.string().min(2).max(40) });
+const PlacementInput = z.object({
+  targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
+});
 
 export const placementTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PlacementInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `Create a placement test in ${data.targetLang} for an Arabic speaker to find their CEFR level. ${JSON_RULE}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `Create a placement test in ${data.targetLang} for an ${nl} speaker to find their CEFR level. ${JSON_RULE}
 Shape: {"questions":[{"level":"<A1|A2|B1|B2>","prompt":"<question in ${data.targetLang}>","options":["..."],"correct":"<exact correct option>"}]}
 Return 16 multiple-choice questions, 4 per level from A1 (easiest) to B2 (hardest), ordered by increasing difficulty.`;
     const obj = await callJson(sys, `Language: ${data.targetLang}.`);
@@ -146,8 +158,9 @@ export const generateDailyPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => TestInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `You are a language coach. Build a focused daily study plan to progress toward B2 in ${data.targetLang} for an Arabic speaker currently at ${data.level}. ${JSON_RULE}
-Shape: {"summary":"<one motivating Arabic sentence>","tasks":[{"title":"<task in Arabic>","skill":"<مفردات|قواعد|استماع|كتابة|تحدّث|مراجعة>","minutes":<number>}]}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `You are a language coach. Build a focused daily study plan to progress toward B2 in ${data.targetLang} for an ${nl} speaker currently at ${data.level}. ${JSON_RULE}
+Shape: {"summary":"<one motivating ${nl} sentence>","tasks":[{"title":"<task in ${nl}>","skill":"<مفردات|قواعد|استماع|كتابة|تحدّث|مراجعة>","minutes":<number>}]}
 Return 6 tasks totaling about 45 minutes.`;
     const obj = await callJson(sys, `Current level: ${data.level}. Language: ${data.targetLang}.`);
     return { summary: String(obj.summary ?? ""), tasks: Array.isArray(obj.tasks) ? obj.tasks.slice(0, 10) : [] };
@@ -157,6 +170,7 @@ Return 6 tasks totaling about 45 minutes.`;
 const DialogueInput = z.object({
   level: z.string().min(2).max(3),
   targetLang: z.string().min(2).max(40),
+  nativeLang: z.string().min(2).max(40).optional(),
   scenario: z.string().min(1).max(80),
 });
 
@@ -164,10 +178,11 @@ export const generateDialogue = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => DialogueInput.parse(i))
   .handler(async ({ data }) => {
-    const sys = `Write a natural CEFR ${data.level} dialogue in ${data.targetLang} for an Arabic learner. ${JSON_RULE}
-Shape: {"title":"<title in Arabic>","lines":[{"speaker":"<A or B>","text":"<line in ${data.targetLang}>","translation":"<Arabic translation>"}]}
+    const nl = data.nativeLang ?? "Arabic";
+    const sys = `Write a natural CEFR ${data.level} dialogue in ${data.targetLang} for an ${nl} learner. ${JSON_RULE}
+Shape: {"title":"<title in ${nl}>","lines":[{"speaker":"<A or B>","text":"<line in ${data.targetLang}>","translation":"<${nl} translation>"}]}
 Return 10 lines about the given scenario.`;
-    const obj = await callJson(sys, `Scenario (Arabic): ${data.scenario}. Level: ${data.level}. Language: ${data.targetLang}.`);
+    const obj = await callJson(sys, `Scenario (${nl}): ${data.scenario}. Level: ${data.level}. Language: ${data.targetLang}.`);
     return { title: String(obj.title ?? data.scenario), lines: Array.isArray(obj.lines) ? obj.lines.slice(0, 16) : [] };
   });
 

@@ -28,18 +28,18 @@ export type TutorReply = {
   xp: number;
 };
 
-function buildSystemPrompt(langName: string, level: string, scenario?: string, student?: string) {
+function buildSystemPrompt(langName: string, nativeName: string, level: string, scenario?: string, student?: string) {
   const scenarioLine = scenario ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.` : "";
   const studentLine = student
     ? `\nمعلومات الطالب الشخصية: ${student}\nخصّص المحادثة والأمثلة والتمارين حسب اسمه وعمره وعمله وحياته، ونادِه باسمه، واجعل المواضيع قريبة من واقعه واهتماماته.`
     : "";
-  return `أنت "المعلم الذكي" — مدرّس ${langName} ودود وسريع البديهة وطبيعي، تتحدّث مع طالب ناطق بالعربية كما يفعل مدرّس بشري حقيقي.
+  return `أنت "المعلم الذكي" — مدرّس ${langName} ودود وسريع البديهة وطبيعي، تتحدّث مع طالب ناطق بـ${nativeName} كما يفعل مدرّس بشري حقيقي.
 مستوى الطالب الحالي: ${level} (حسب الإطار الأوروبي CEFR).${scenarioLine}${studentLine}
 
 قواعد سلوكك:
 1) الشخصية والنبرة: مشجّع، دافئ، طبيعي ومختصر. لا تبدُ أبداً كموسوعة أو روبوت.
 2) السرعة والاختصار: اجعل الردّ قصيراً جداً (جملة إلى ثلاث جمل كحدّ أقصى) ليتحدّث الطالب أكثر. ممنوع المحاضرات الطويلة.
-3) توازن اللغة: تحدّث أساساً بلغة ${langName} بمستوى مناسب لـ ${level}. استخدم العربية فقط لشرح قاعدة صعبة أو ملاحظة مهمة أو حين يسألك الطالب بالعربية.
+3) توازن اللغة: تحدّث أساساً بلغة ${langName} بمستوى مناسب لـ ${level}. استخدم ${nativeName} فقط لشرح قاعدة صعبة أو ملاحظة مهمة أو حين يسألك الطالب بـ${nativeName}.
 4) تفاعل دائم: أنهِ كل ردّ بسؤال قصير وبسيط أو تحدٍّ سريع ليستمر الحوار طبيعياً.
 5) تصحيح لطيف: إن أخطأ الطالب في القواعد أو النطق، صحّح فوراً بشكل خفيف وسريع ثم تابع الحديث. مثال: "أحسنت! فقط تذكّر أنها 'Come ti chiami?' وليس 'Come ti chiama?'. والآن، من أين أنت؟"
 6) قابلية المقاطعة: توقّع أن يقاطعك الطالب. إذا جاءت رسالة جديدة، توقّف فوراً عمّا كنت تشرحه وتعامل مع مدخله الجديد مباشرة.
@@ -48,7 +48,7 @@ function buildSystemPrompt(langName: string, level: string, scenario?: string, s
 9) امنح نقاط خبرة (xp) بين 3 و15 حسب جودة مشاركة الطالب.
 
 أجب حصراً بكائن JSON صارم بدون أي نص إضافي أو Markdown، بالشكل التالي:
-{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة عربية كاملة للردّ>","correction":{"original":"<جملة الطالب الخاطئة كما كتبها>","corrected":"<الجملة الصحيحة بلغة ${langName}>","reason":"<سبب الخطأ بالعربية بإيجاز، مثل: خطأ في زمن الفعل / ترتيب الكلمات / حرف جر>","rule":"<قاعدة نحوية مختصرة بالعربية توضّح الصواب>","examples":["<مثال بديل صحيح بلغة ${langName}>","<مثال بديل آخر صحيح بلغة ${langName}>"],"explanation":"<شرح إضافي مبسّط بالعربية>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}
+{"reply":"<ردّك بلغة ${langName}>","translation":"<ترجمة كاملة للردّ بـ${nativeName}>","correction":{"original":"<جملة الطالب الخاطئة كما كتبها>","corrected":"<الجملة الصحيحة بلغة ${langName}>","reason":"<سبب الخطأ بـ${nativeName} بإيجاز، مثل: خطأ في زمن الفعل / ترتيب الكلمات / حرف جر>","rule":"<قاعدة نحوية مختصرة بـ${nativeName} توضّح الصواب>","examples":["<مثال بديل صحيح بلغة ${langName}>","<مثال بديل آخر صحيح بلغة ${langName}>"],"explanation":"<شرح إضافي مبسّط بـ${nativeName}>"} أو null إذا لا يوجد خطأ,"level":"<A1|A2|B1|B2|C1>","xp":<رقم>}
 اجعل حقل examples يحتوي على مثالين إلى ثلاثة أمثلة قصيرة صحيحة بلغة ${langName} يمكن للطالب استخدامها مباشرة.`;
 }
 
@@ -98,6 +98,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         text: z.string().min(1).max(4000),
         targetLang: z.string().min(2).max(10),
         targetLangName: z.string().min(2).max(40),
+        nativeLangName: z.string().min(2).max(40).optional(),
         scenario: z.string().max(400).optional(),
         student: z.string().max(600).optional(),
       })
@@ -131,7 +132,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const ordered = (history ?? []).reverse();
 
     const messages = [
-      { role: "system", content: buildSystemPrompt(data.targetLangName, curLevel, data.scenario, data.student) },
+      { role: "system", content: buildSystemPrompt(data.targetLangName, data.nativeLangName ?? "العربية", curLevel, data.scenario, data.student) },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -261,6 +262,7 @@ export const assessConversation = createServerFn({ method: "POST" })
       .object({
         targetLang: z.string().min(2).max(10),
         targetLangName: z.string().min(2).max(40),
+        nativeLangName: z.string().min(2).max(40).optional(),
         pronunciationScore: z.number().min(0).max(100).optional(),
       })
       .parse(input),
@@ -290,7 +292,7 @@ export const assessConversation = createServerFn({ method: "POST" })
       .map((m) => `${m.role === "user" ? "الطالب" : "المدرّس"}: ${m.content}`)
       .join("\n");
 
-    const sys = `أنت مقيّم لغوي خبير. قيّم أداء الطالب الناطق بالعربية في محادثة بلغة ${data.targetLangName} (مستواه الحالي ${curLevel}).
+    const sys = `أنت مقيّم لغوي خبير. قيّم أداء الطالب الناطق بـ${data.nativeLangName ?? "العربية"} في محادثة بلغة ${data.targetLangName} (مستواه الحالي ${curLevel}).
 اعتمد فقط على رسائل الطالب. أعطِ درجات من 0 إلى 100 لكل من: القواعد (grammar)، المفردات (vocabulary)، الطلاقة (fluency)، والنطق (pronunciation).
 ${data.pronunciationScore !== undefined ? `درجة النطق المقاسة فعلياً من تدريبات الصوت هي ${Math.round(data.pronunciationScore)} فاعتمدها كمرجع أساسي للنطق.` : "قدّر النطق تقديرياً من جودة الكتابة إذ لا توجد قياسات صوتية."}
 أجب حصراً بكائن JSON صارم بدون أي نص إضافي:

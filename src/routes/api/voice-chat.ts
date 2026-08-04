@@ -7,12 +7,12 @@ const MODEL = "google/gemini-3-flash-preview";
 // حدّ صارم لتقليل الكلفة والتأخير في الوضع الصوتي
 const MAX_VOICE_TOKENS = 120;
 
-function voicePrompt(langName: string, level: string, scenario?: string, student?: string) {
-  return `أنت "المعلم الذكي" — مدرّس ${langName} ودود وطبيعي يتحدّث صوتياً مع طالب ناطق بالعربية. مستوى الطالب: ${level}.
+function voicePrompt(langName: string, nativeName: string, level: string, scenario?: string, student?: string) {
+  return `أنت "المعلم الذكي" — مدرّس ${langName} ودود وطبيعي يتحدّث صوتياً مع طالب ناطق بـ${nativeName}. مستوى الطالب: ${level}.
 ${scenario ? `السيناريو: ${scenario}\n` : ""}${student ? `معلومات الطالب: ${student}\n` : ""}
 قواعد صارمة للوضع الصوتي:
 - ردّ من جملة إلى ثلاث جمل قصيرة جداً فقط. ممنوع الشرح الطويل أو القوائم أو Markdown.
-- تحدّث أساساً بلغة ${langName} بمستوى ${level}، واستخدم العربية فقط لتوضيح خطأ أو كلمة صعبة بكلمات قليلة.
+- تحدّث أساساً بلغة ${langName} بمستوى ${level}، واستخدم ${nativeName} فقط لتوضيح خطأ أو كلمة صعبة بكلمات قليلة.
 - صحّح الخطأ بلطف وبسرعة ثم تابع.
 - أنهِ كل ردّ بسؤال قصير جداً ليواصل الطالب الكلام.
 - نصّ عادي فقط بدون رموز أو JSON.`;
@@ -44,12 +44,14 @@ export const Route = createFileRoute("/api/voice-chat")({
           text?: string;
           targetLang?: string;
           targetLangName?: string;
+          nativeLangName?: string;
           scenario?: string;
           student?: string;
         } | null;
         const text = (body?.text ?? "").trim();
         const targetLang = (body?.targetLang ?? "en").slice(0, 10);
         const targetLangName = (body?.targetLangName ?? "English").slice(0, 40);
+        const nativeLangName = (body?.nativeLangName ?? "العربية").slice(0, 40);
         if (!text || text.length > 4000) return new Response("Invalid input", { status: 400 });
 
         const { data: prog } = await supabase
@@ -81,7 +83,7 @@ export const Route = createFileRoute("/api/voice-chat")({
             messages: [
               {
                 role: "system",
-                content: voicePrompt(targetLangName, level, body?.scenario, body?.student),
+                content: voicePrompt(targetLangName, nativeLangName, level, body?.scenario, body?.student),
               },
               ...ordered.map((m) => ({ role: m.role, content: m.content })),
             ],

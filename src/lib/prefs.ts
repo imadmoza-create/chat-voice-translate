@@ -154,3 +154,9 @@ export function useUserGender(): [UserGender, (g: UserGender) => void] {
   }, []);
   return [gender, setUserGender];
 }
+
+// اسم اللغة الأم بالإنجليزية (لاستخدامه في تعليمات الذكاء الاصطناعي)
+export function useNativeLangName(): string {
+  const [code] = useNativeLang();
+  return LANGUAGES.find((l) => l.code === code)?.name ?? "Arabic";
+}

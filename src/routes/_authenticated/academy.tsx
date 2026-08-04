@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
-import { useUserGender, useAppLang } from "@/lib/prefs";
+import { useUserGender, useAppLang, useNativeLangName } from "@/lib/prefs";
 import {
   generateLesson, generateVerbPack, generateExercise, generateLevelTest,
   placementTest, generateDailyPlan, generateDialogue, getProgress, updateProgress,
@@ -237,6 +237,7 @@ type Shared = { lang: string; langName: string; bcp47: string; voiceGender: Voic
 
 // ===================== درس موضوع =====================
 function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: Shared & { theme: Theme }) {
+  const nativeName = useNativeLangName();
   const runLesson = useServerFn(generateLesson);
   const runAddReviews = useServerFn(addReviews);
   const [loading, setLoading] = useState(true);
@@ -247,7 +248,7 @@ function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: 
     (async () => {
       setLoading(true);
       try {
-        const r = await runLesson({ data: { level, theme: theme.title, targetLang: langName } });
+        const r = await runLesson({ data: { level, theme: theme.title, targetLang: langName, nativeLang: nativeName } });
         setData(r);
         if (Array.isArray(r.vocab) && r.vocab.length) {
           runAddReviews({ data: { lang, level, words: r.vocab.slice(0, 20).map((v: any) => ({ word: String(v.word), translation: String(v.translation) })) } }).catch(() => {});
@@ -328,6 +329,7 @@ function ThemeView({ theme, lang, langName, bcp47, voiceGender, level, award }: 
 
 // ===================== مركز التمارين =====================
 function ExerciseHub({ theme, langName, bcp47, voiceGender, level, award }: Shared & { theme: Theme }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateExercise);
   const [type, setType] = useState<"listening" | "writing" | "speaking" | "grammar" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -336,7 +338,7 @@ function ExerciseHub({ theme, langName, bcp47, voiceGender, level, award }: Shar
   const load = async (t: typeof type) => {
     if (!t) return;
     setType(t); setLoading(true); setItems([]);
-    try { const r = await run({ data: { level, theme: theme.title, targetLang: langName, type: t } }); setItems(r.items ?? []); }
+    try { const r = await run({ data: { level, theme: theme.title, targetLang: langName, nativeLang: nativeName, type: t } }); setItems(r.items ?? []); }
     catch (e) { aiError(e); } finally { setLoading(false); }
   };
 
@@ -446,6 +448,7 @@ const VERB_CATEGORIES = [
   "الأفعال المساعدة والنمطية",
 ];
 function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateVerbPack);
   const [cat, setCat] = useState(VERB_CATEGORIES[0]);
   const [loading, setLoading] = useState(false);
@@ -453,7 +456,7 @@ function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
 
   const load = async (c: string) => {
     setCat(c); setLoading(true); setVerbs([]);
-    try { const r = await run({ data: { level, category: c, targetLang: langName } }); setVerbs(r.verbs ?? []); }
+    try { const r = await run({ data: { level, category: c, targetLang: langName, nativeLang: nativeName } }); setVerbs(r.verbs ?? []); }
     catch (e) { aiError(e); } finally { setLoading(false); }
   };
   useEffect(() => { load(VERB_CATEGORIES[0]); /* eslint-disable-next-line */ }, [langName, level]);
@@ -490,6 +493,7 @@ function VerbsView({ langName, bcp47, voiceGender, level }: Shared) {
 
 // ===================== اختبار المستوى =====================
 function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { onPromote: (l: CEFRLevel) => void }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateLevelTest);
   const [loading, setLoading] = useState(true);
   const [qs, setQs] = useState<any[]>([]);
@@ -499,7 +503,7 @@ function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { o
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    (async () => { setLoading(true); try { const r = await run({ data: { level, targetLang: langName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { const r = await run({ data: { level, targetLang: langName, nativeLang: nativeName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, [level, lang]);
 
@@ -543,6 +547,7 @@ function LevelTestView({ lang, langName, level, award, onPromote }: Shared & { o
 
 // ===================== تحديد المستوى =====================
 function PlacementView({ langName, onSet }: { lang: string; langName: string; bcp47: string; voiceGender: VoiceGender; onSet: (l: CEFRLevel) => void }) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(placementTest);
   const [loading, setLoading] = useState(true);
   const [qs, setQs] = useState<any[]>([]);
@@ -552,7 +557,7 @@ function PlacementView({ langName, onSet }: { lang: string; langName: string; bc
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    (async () => { setLoading(true); try { const r = await run({ data: { targetLang: langName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { const r = await run({ data: { targetLang: langName, nativeLang: nativeName } }); setQs(r.questions ?? []); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, []);
 
@@ -647,11 +652,12 @@ function ReviewView({ lang, bcp47, voiceGender, award }: { lang: string; bcp47: 
 
 // ===================== الخطة اليومية =====================
 function PlanView({ langName, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateDailyPlan);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   useEffect(() => {
-    (async () => { setLoading(true); try { setData(await run({ data: { level, targetLang: langName } })); } catch (e) { aiError(e); } finally { setLoading(false); } })();
+    (async () => { setLoading(true); try { setData(await run({ data: { level, targetLang: langName, nativeLang: nativeName } })); } catch (e) { aiError(e); } finally { setLoading(false); } })();
     /* eslint-disable-next-line */
   }, [langName, level]);
   if (loading) return <Center />;
@@ -673,13 +679,14 @@ function PlanView({ langName, level }: Shared) {
 // ===================== الحوارات =====================
 const SCENARIOS = ["محادثة يومية في المقهى", "محادثة عمل واجتماع", "مقابلة وظيفية", "في المطار والسفر", "عند الطبيب", "التسوق"];
 function DialogueView({ langName, bcp47, voiceGender, level }: Shared) {
+  const nativeName = useNativeLangName();
   const run = useServerFn(generateDialogue);
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const load = async (s: string) => {
     setScenario(s); setLoading(true); setData(null);
-    try { setData(await run({ data: { level, targetLang: langName, scenario: s } })); } catch (e) { aiError(e); } finally { setLoading(false); }
+    try { setData(await run({ data: { level, targetLang: langName, nativeLang: nativeName, scenario: s } })); } catch (e) { aiError(e); } finally { setLoading(false); }
   };
   useEffect(() => { load(SCENARIOS[0]); /* eslint-disable-next-line */ }, [langName, level]);
   return (
