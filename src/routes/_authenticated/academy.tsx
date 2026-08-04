@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { langByCode } from "@/lib/languages";
 import { LEVELS, levelByCode, nextLevel, type CEFRLevel, type Theme } from "@/lib/curriculum";
 import { speak, type VoiceGender } from "@/lib/speech";
-import { useUserGender, useAppLang } from "@/lib/prefs";
+import { useUserGender, useAppLang, useNativeLangName } from "@/lib/prefs";
 import {
   generateLesson, generateVerbPack, generateExercise, generateLevelTest,
   placementTest, generateDailyPlan, generateDialogue, getProgress, updateProgress,
@@ -336,7 +336,7 @@ function ExerciseHub({ theme, langName, bcp47, voiceGender, level, award }: Shar
   const load = async (t: typeof type) => {
     if (!t) return;
     setType(t); setLoading(true); setItems([]);
-    try { const r = await run({ data: { level, theme: theme.title, targetLang: langName, type: t } }); setItems(r.items ?? []); }
+    try { const r = await run({ data: { level, theme: theme.title, targetLang: langName, nativeLang: nativeName, type: t } }); setItems(r.items ?? []); }
     catch (e) { aiError(e); } finally { setLoading(false); }
   };
 
@@ -679,7 +679,7 @@ function DialogueView({ langName, bcp47, voiceGender, level }: Shared) {
   const [data, setData] = useState<any>(null);
   const load = async (s: string) => {
     setScenario(s); setLoading(true); setData(null);
-    try { setData(await run({ data: { level, targetLang: langName, scenario: s } })); } catch (e) { aiError(e); } finally { setLoading(false); }
+    try { setData(await run({ data: { level, targetLang: langName, nativeLang: nativeName, scenario: s } })); } catch (e) { aiError(e); } finally { setLoading(false); }
   };
   useEffect(() => { load(SCENARIOS[0]); /* eslint-disable-next-line */ }, [langName, level]);
   return (
