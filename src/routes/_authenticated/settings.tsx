@@ -311,7 +311,7 @@ function SettingsPage() {
         </p>
         <select
           value={lang}
-          onChange={(e) => setLang(e.target.value)}
+          onChange={(e) => changeTargetLang(e.target.value)}
           className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
         >
           {LANGUAGES.map((l) => (
