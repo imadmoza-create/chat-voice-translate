@@ -139,6 +139,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <UiLanguageProvider />
         {/* Required: nested routes render here. */}
         <Outlet />
         <Toaster position="top-center" richColors />
