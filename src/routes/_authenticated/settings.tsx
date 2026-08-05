@@ -81,7 +81,28 @@ function SettingsPage() {
     }
   }
 
+  // منع تطابق اللغة الأم مع اللغة الهدف
+  function changeNativeLang(code: string) {
+    if (code === lang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
+    setNativeLang(code);
+  }
+
+  function changeTargetLang(code: string) {
+    if (code === nativeLang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
+    setLang(code);
+  }
+
   async function useDeviceLang() {
+    if (deviceLang === nativeLang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
     setLang(deviceLang);
     const devMeta = langByCode(deviceLang);
     toast.success(`تم ضبط اللغة الأساسية على لغة الهاتف: ${devMeta?.nameAr ?? deviceLang}`);
@@ -101,6 +122,7 @@ function SettingsPage() {
       setLoading(false);
     }
   }
+
 
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
