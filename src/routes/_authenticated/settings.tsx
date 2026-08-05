@@ -287,6 +287,10 @@ function SettingsPage() {
           size="sm"
           className="mt-2 gap-1.5 rounded-xl"
           onClick={() => {
+            if (deviceLang === lang) {
+              toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+              return;
+            }
             setNativeLang(deviceLang);
             toast.success(`تم ضبط لغتك الأساسية على لغة الهاتف: ${langByCode(deviceLang)?.nameAr ?? deviceLang}`);
           }}
