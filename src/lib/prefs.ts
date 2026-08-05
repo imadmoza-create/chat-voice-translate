@@ -74,9 +74,20 @@ export function detectDeviceLang(): string {
   return "en";
 }
 
+// لغة هدف افتراضية مختلفة عن اللغة الأم
+export function defaultTargetFor(native: string): string {
+  if (native === "ar") return "it";
+  if (native === "it") return "ar";
+  if (native === "en") return "it";
+  return "en";
+}
+
 export function getAppLang(): string {
   if (typeof window === "undefined") return "en";
-  return localStorage.getItem(LANG_KEY) ?? detectDeviceLang();
+  const native = getNativeLang();
+  const stored = localStorage.getItem(LANG_KEY);
+  if (!stored || stored === native) return defaultTargetFor(native);
+  return stored;
 }
 
 export function setAppLang(lang: string) {
@@ -95,7 +106,12 @@ export function setNativeLang(lang: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem(NATIVE_KEY, lang);
   window.dispatchEvent(new CustomEvent(NATIVE_EVENT, { detail: lang }));
+  // منع تطابق اللغتين: عدّل اللغة الهدف تلقائياً إن تساوت
+  if (localStorage.getItem(LANG_KEY) === lang) {
+    setAppLang(defaultTargetFor(lang));
+  }
 }
+
 
 export function useNativeLang(): [string, (l: string) => void] {
   const [lang, setLang] = useState<string>("ar");
