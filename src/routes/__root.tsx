@@ -14,6 +14,7 @@ import appLogo from "@/assets/app-logo.png";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { UiLanguageProvider } from "@/components/UiLanguageProvider";
 
 function NotFoundComponent() {
   return (
@@ -139,6 +140,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <UiLanguageProvider />
         {/* Required: nested routes render here. */}
         <Outlet />
         <Toaster position="top-center" richColors />
