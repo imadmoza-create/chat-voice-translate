@@ -147,9 +147,11 @@ export function useAppLang(): [string, (l: string) => void] {
     setLang(getAppLang());
     const handler = () => setLang(getAppLang());
     window.addEventListener(LANG_EVENT, handler);
+    window.addEventListener(NATIVE_EVENT, handler);
     window.addEventListener("storage", handler);
     return () => {
       window.removeEventListener(LANG_EVENT, handler);
+      window.removeEventListener(NATIVE_EVENT, handler);
       window.removeEventListener("storage", handler);
     };
   }, []);
