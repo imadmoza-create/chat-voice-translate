@@ -81,7 +81,28 @@ function SettingsPage() {
     }
   }
 
+  // منع تطابق اللغة الأم مع اللغة الهدف
+  function changeNativeLang(code: string) {
+    if (code === lang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
+    setNativeLang(code);
+  }
+
+  function changeTargetLang(code: string) {
+    if (code === nativeLang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
+    setLang(code);
+  }
+
   async function useDeviceLang() {
+    if (deviceLang === nativeLang) {
+      toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+      return;
+    }
     setLang(deviceLang);
     const devMeta = langByCode(deviceLang);
     toast.success(`تم ضبط اللغة الأساسية على لغة الهاتف: ${devMeta?.nameAr ?? deviceLang}`);
@@ -101,6 +122,7 @@ function SettingsPage() {
       setLoading(false);
     }
   }
+
 
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
@@ -251,7 +273,7 @@ function SettingsPage() {
         </p>
         <select
           value={nativeLang}
-          onChange={(e) => setNativeLang(e.target.value)}
+          onChange={(e) => changeNativeLang(e.target.value)}
           className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
         >
           {LANGUAGES.map((l) => (
@@ -265,6 +287,10 @@ function SettingsPage() {
           size="sm"
           className="mt-2 gap-1.5 rounded-xl"
           onClick={() => {
+            if (deviceLang === lang) {
+              toast.error("لا يمكن أن تكون لغتك الأساسية هي نفسها اللغة المراد تعلمها");
+              return;
+            }
             setNativeLang(deviceLang);
             toast.success(`تم ضبط لغتك الأساسية على لغة الهاتف: ${langByCode(deviceLang)?.nameAr ?? deviceLang}`);
           }}
@@ -285,7 +311,7 @@ function SettingsPage() {
         </p>
         <select
           value={lang}
-          onChange={(e) => setLang(e.target.value)}
+          onChange={(e) => changeTargetLang(e.target.value)}
           className="mt-2 w-full rounded-xl border bg-background px-3 py-2.5 font-medium outline-none focus:ring-2 focus:ring-primary"
         >
           {LANGUAGES.map((l) => (
