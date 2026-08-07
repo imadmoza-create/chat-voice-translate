@@ -328,10 +328,31 @@ function VoicePage() {
         </div>
       )}
 
+      {/* مؤشرات الشبكة والتعرّف على الكلام */}
+      {!online && (
+        <div className="flex items-center gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+          <WifiOff className="size-4 shrink-0" />
+          لا يوجد اتصال بالإنترنت — ستُستأنف المحادثة تلقائياً من حيث توقفت.
+        </div>
+      )}
+      {online && retry > 0 && (
+        <div className="flex items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+          <RefreshCw className="size-4 shrink-0 animate-spin" />
+          الشبكة ضعيفة — جارِ إعادة الاتصال ({retry}/3) واستئناف المحادثة.
+        </div>
+      )}
+      {speechIssue && (
+        <div className="flex items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+          <MicOff className="size-4 shrink-0" />
+          {speechIssue}
+        </div>
+      )}
+
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
         <Visualizer phase={phase} level={level} />
         <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground">
           {(phase === "connecting" || phase === "thinking") && <Loader2 className="size-4 animate-spin" />}
+          {online && !speechIssue && phase !== "idle" && <Wifi className="size-4 text-emerald-500" />}
           {statusText}
         </div>
 
@@ -351,6 +372,7 @@ function VoicePage() {
         </div>
 
         {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
+
 
         <div className="mt-6 flex justify-center">
           {phase === "idle" ? (
