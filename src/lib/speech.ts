@@ -222,3 +222,39 @@ export async function startBargeInDetector(onSpeech: () => void): Promise<() => 
     void ctx?.close();
   };
 }
+
+/**
+ * مقياس مستوى الميكروفون المستمر — للمرئيات (Visualizer) وكشف المقاطعة.
+ * يُرجع دالة إيقاف.
+ */
+export async function startMicMeter(onLevel: (level: number) => void): Promise<() => void> {
+  if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) return () => {};
+  let stopped = false;
+  let stream: MediaStream | null = null;
+  let ctx: AudioContext | null = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (stopped) return;
+      analyser.getByteTimeDomainData(buf);
+      let peak = 0;
+      for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
+      onLevel(Math.min(1, peak / 60));
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  } catch {
+    return () => {};
+  }
+  return () => {
+    stopped = true;
+    stream?.getTracks().forEach((t) => t.stop());
+    void ctx?.close();
+  };
+}
