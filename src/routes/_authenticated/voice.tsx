@@ -12,7 +12,7 @@ import { useUserGender, useAppLang, useNativeLangName, useStudentProfile, buildS
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { Button } from "@/components/ui/button";
-import { Mic, PhoneOff, Loader2, Radio, Sparkles } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Loader2, Radio, Sparkles, Wifi, WifiOff, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/voice")({
   head: () => ({
