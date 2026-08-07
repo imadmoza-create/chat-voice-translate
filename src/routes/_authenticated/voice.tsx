@@ -270,16 +270,21 @@ function VoicePage() {
   const stop = () => {
     activeRef.current = false;
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    if (retryTimer.current) clearTimeout(retryTimer.current);
     stopRecRef.current();
     stopRecRef.current = () => {};
     stopMeterRef.current();
     stopMeterRef.current = () => {};
     stopAiAudio();
     setLevel(0);
+    setRetry(0);
+    setSpeechIssue(null);
+    lastTurnRef.current = null;
     setPhaseSafe("idle");
   };
 
   useEffect(() => stop, []);
+
 
   const statusText =
     phase === "connecting"
