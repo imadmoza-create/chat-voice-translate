@@ -63,7 +63,19 @@ export const Route = createFileRoute("/api/voice-chat")({
           .maybeSingle();
         const level = prog?.level ?? "A1";
 
-        await supabase.from("chat_messages").insert({ user_id: userId, role: "user", content: text });
+        // تفادي تكرار الرسالة عند إعادة المحاولة بعد انقطاع الشبكة
+        const { data: lastMsg } = await supabase
+          .from("chat_messages")
+          .select("role, content")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const isDuplicate = lastMsg?.role === "user" && lastMsg?.content === text;
+        if (!isDuplicate) {
+          await supabase.from("chat_messages").insert({ user_id: userId, role: "user", content: text });
+        }
+
 
         const { data: history } = await supabase
           .from("chat_messages")
