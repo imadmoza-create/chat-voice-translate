@@ -72,6 +72,9 @@ function VoicePage() {
   const [aiText, setAiText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [scenario, setScenario] = useState<string>("");
+  const [online, setOnline] = useState(true);
+  const [speechIssue, setSpeechIssue] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   const activeRef = useRef(false);
   const phaseRef = useRef<Phase>("idle");
@@ -80,11 +83,31 @@ function VoicePage() {
   const streamerRef = useRef<ReturnType<typeof createSpeechStreamer> | null>(null);
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef("");
+  // آخر جملة لم تُستكمل — تُستأنف تلقائياً بعد عودة الشبكة بدون فقد السياق
+  const lastTurnRef = useRef<string | null>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setPhaseSafe = (p: Phase) => {
     phaseRef.current = p;
     setPhase(p);
   };
+
+  // مراقبة حالة الشبكة
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    const up = () => {
+      setOnline(true);
+      // استئناف تلقائي للجملة المعلّقة فور عودة الاتصال
+      if (activeRef.current && lastTurnRef.current) void sendTurn(lastTurnRef.current, 0);
+    };
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+    };
+  }, []);
 
   const stopAiAudio = () => {
     streamerRef.current?.cancel();
@@ -97,25 +120,54 @@ function VoicePage() {
     pendingRef.current = "";
     setUserText("");
     setPhaseSafe("listening");
-    stopRecRef.current = startLiveTranscript(bcp47, (t) => {
-      if (!activeRef.current) return;
-      pendingRef.current = t;
-      setUserText(t);
-      if (silenceTimer.current) clearTimeout(silenceTimer.current);
-      silenceTimer.current = setTimeout(() => {
-        const text = pendingRef.current.trim();
-        if (text) void sendTurn(text);
-      }, SILENCE_MS);
-    });
+    stopRecRef.current = startLiveTranscript(
+      bcp47,
+      (t) => {
+        if (!activeRef.current) return;
+        setSpeechIssue(null);
+        pendingRef.current = t;
+        setUserText(t);
+        if (silenceTimer.current) clearTimeout(silenceTimer.current);
+        silenceTimer.current = setTimeout(() => {
+          const text = pendingRef.current.trim();
+          if (text) void sendTurn(text, 0);
+        }, SILENCE_MS);
+      },
+      {
+        onError: (code) => {
+          setSpeechIssue(
+            code === "not-allowed" || code === "service-not-allowed"
+              ? "لم يُسمح باستخدام الميكروفون. فعّل الإذن من المتصفح."
+              : code === "not-supported"
+                ? "متصفحك لا يدعم التعرّف على الكلام. جرّب Chrome."
+                : code === "network"
+                  ? "تعذّر التعرّف على الكلام بسبب ضعف الشبكة — تتم إعادة المحاولة تلقائياً."
+                  : "تعذّر التعرّف على الكلام — تتم إعادة المحاولة تلقائياً.",
+          );
+        },
+        onRestart: () => {
+          if (activeRef.current) setSpeechIssue(null);
+        },
+      },
+    );
   };
 
-  const sendTurn = async (text: string) => {
+  const sendTurn = async (text: string, attempt: number) => {
     if (!activeRef.current) return;
+    lastTurnRef.current = text;
     stopRecRef.current();
     stopRecRef.current = () => {};
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
     setPhaseSafe("thinking");
-    setAiText("");
+    if (attempt === 0) setAiText("");
+    setRetry(attempt);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setOnline(false);
+      setError("لا يوجد اتصال بالإنترنت — سيتم الاستئناف تلقائياً عند عودته.");
+      return;
+    }
+
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
@@ -134,7 +186,7 @@ function VoicePage() {
       });
       if (res.status === 429) throw new Error("RATE_LIMIT");
       if (res.status === 402) throw new Error("CREDITS");
-      if (!res.ok || !res.body) throw new Error("AI");
+      if (!res.ok || !res.body) throw new Error(res.status >= 500 ? "NETWORK" : "AI");
 
       const streamer = createSpeechStreamer(bcp47, voice, () => {
         streamerRef.current = null;
@@ -142,6 +194,9 @@ function VoicePage() {
       });
       streamerRef.current = streamer;
       setPhaseSafe("speaking");
+      setError(null);
+      setRetry(0);
+      setAiText("");
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -169,18 +224,31 @@ function VoicePage() {
         }
       }
       if (streamerRef.current === streamer) streamer.end();
+      lastTurnRef.current = null;
     } catch (e: any) {
       const msg = String(e?.message ?? "");
+      const retryable = !msg.includes("CREDITS") && !msg.includes("AUTH");
+      if (retryable && attempt < 3 && activeRef.current) {
+        setError(`ضعف في الاتصال — إعادة المحاولة (${attempt + 1}/3)...`);
+        setRetry(attempt + 1);
+        if (retryTimer.current) clearTimeout(retryTimer.current);
+        retryTimer.current = setTimeout(() => {
+          void sendTurn(text, attempt + 1);
+        }, 800 * Math.pow(2, attempt));
+        return;
+      }
       setError(
         msg.includes("RATE_LIMIT")
           ? "تم تجاوز حد الطلبات، حاول بعد قليل."
           : msg.includes("CREDITS")
             ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
-            : "تعذّر الاتصال بالمعلّم الصوتي.",
+            : "تعذّر الاتصال بالمعلّم الصوتي — سيتم الاستئناف عند عودة الشبكة.",
       );
+      setRetry(0);
       if (activeRef.current) startListening();
     }
   };
+
 
   const start = async () => {
     setError(null);
