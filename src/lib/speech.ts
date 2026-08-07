@@ -78,14 +78,22 @@ export function isSpeechRecognitionSupported() {
  * عرض لحظي للنص أثناء التحدّث (interim results).
  * يعمل بالتوازي مع التسجيل، ويُرجع دالة إيقاف.
  */
-export function startLiveTranscript(bcp47: string, onText: (text: string) => void): () => void {
+export function startLiveTranscript(
+  bcp47: string,
+  onText: (text: string) => void,
+  handlers?: { onError?: (code: string) => void; onRestart?: () => void },
+): () => void {
   const SRClass = getSpeechRecognition();
-  if (!SRClass) return () => {};
+  if (!SRClass) {
+    handlers?.onError?.("not-supported");
+    return () => {};
+  }
   let stopped = false;
   let rec: any;
   try {
     rec = new SRClass();
   } catch {
+    handlers?.onError?.("init-failed");
     return () => {};
   }
   rec.lang = bcp47;
@@ -101,9 +109,14 @@ export function startLiveTranscript(bcp47: string, onText: (text: string) => voi
     }
     onText((finalText + " " + interim).trim());
   };
-  rec.onerror = () => {};
+  rec.onerror = (ev: any) => {
+    const code = String(ev?.error ?? "unknown");
+    // "no-speech" و"aborted" طبيعية أثناء الصمت — لا تُعتبر أعطالاً
+    if (code !== "no-speech" && code !== "aborted") handlers?.onError?.(code);
+  };
   rec.onend = () => {
     if (!stopped) {
+      handlers?.onRestart?.();
       try {
         rec.start();
       } catch {
@@ -114,7 +127,7 @@ export function startLiveTranscript(bcp47: string, onText: (text: string) => voi
   try {
     rec.start();
   } catch {
-    /* ignore */
+    handlers?.onError?.("start-failed");
   }
   return () => {
     stopped = true;
@@ -125,6 +138,7 @@ export function startLiveTranscript(bcp47: string, onText: (text: string) => voi
     }
   };
 }
+
 
 
 // ---- بثّ صوتي منخفض التأخير: انطق الجمل فور اكتمالها أثناء وصول البثّ ----
