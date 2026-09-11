@@ -74,7 +74,12 @@ function CommunityPage() {
       .channel(`community-${lang}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "community_messages", filter: `lang=eq.${lang}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "community_messages",
+          filter: `lang=eq.${lang}`,
+        },
         (payload) => {
           const m = payload.new as CommunityMessage;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
@@ -95,7 +100,9 @@ function CommunityPage() {
       const res = await postMessage({ data: { lang, content } });
       if (res.ok) {
         setInput("");
-        setMessages((prev) => (prev.some((x) => x.id === res.message.id) ? prev : [...prev, res.message]));
+        setMessages((prev) =>
+          prev.some((x) => x.id === res.message.id) ? prev : [...prev, res.message],
+        );
         scrollDown();
       } else if (res.reason === "banned") {
         setBan({ banned: true, until: res.until, reason: null, strikes: 0 });
@@ -172,7 +179,9 @@ function CommunityPage() {
                       </div>
                     )}
                     <p className="whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
-                    <div className={`mt-0.5 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    <div
+                      className={`mt-0.5 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    >
                       {fmtTime(m.created_at)}
                     </div>
                   </div>
@@ -203,7 +212,12 @@ function CommunityPage() {
             disabled={busy}
             className="rounded-xl"
           />
-          <Button onClick={send} disabled={busy || !input.trim()} size="icon" className="rounded-xl gradient-primary text-primary-foreground shadow-glow shrink-0">
+          <Button
+            onClick={send}
+            disabled={busy || !input.trim()}
+            size="icon"
+            className="rounded-xl gradient-primary text-primary-foreground shadow-glow shrink-0"
+          >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </Button>
         </div>

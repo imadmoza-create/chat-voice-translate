@@ -5,7 +5,13 @@ import { translateText } from "@/lib/translate.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { langByCode } from "@/lib/languages";
-import { speak, stopSpeaking, getSpeechRecognition, isSpeechRecognitionSupported, type VoiceGender } from "@/lib/speech";
+import {
+  speak,
+  stopSpeaking,
+  getSpeechRecognition,
+  isSpeechRecognitionSupported,
+  type VoiceGender,
+} from "@/lib/speech";
 import { useUserGender, useAppLang, useNativeLang } from "@/lib/prefs";
 import { ImageTranslator, type ImgResult } from "@/components/ImageTranslator";
 import type { Conjugation } from "@/lib/translate.functions";
@@ -14,11 +20,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Languages as LangIcon, Mic, Camera, Volume2, Copy, Star, Loader2,
-  Square, Sparkles, MessageCircle, Settings,
+  Languages as LangIcon,
+  Mic,
+  Camera,
+  Volume2,
+  Copy,
+  Star,
+  Loader2,
+  Square,
+  Sparkles,
+  MessageCircle,
+  Settings,
 } from "lucide-react";
 
-type Result = { detectedLang: string; translation: string; sourceText: string; conjugations?: Conjugation[] };
+type Result = {
+  detectedLang: string;
+  translation: string;
+  sourceText: string;
+  conjugations?: Conjugation[];
+};
 
 export function Translator() {
   const { user } = useAuth();
@@ -65,7 +85,9 @@ export function Translator() {
     setBusy(true);
     setResult(null);
     try {
-      const r = (await doText({ data: { text: text.trim(), targetLang: targetMeta?.name ?? targetLang } })) as Result;
+      const r = (await doText({
+        data: { text: text.trim(), targetLang: targetMeta?.name ?? targetLang },
+      })) as Result;
       setResult(r);
       await saveHistory(r, mode);
     } catch (err) {
@@ -90,10 +112,15 @@ export function Translator() {
     rec.continuous = false;
     rec.interimResults = true;
     rec.onresult = (e: any) => {
-      const transcript = Array.from(e.results).map((res: any) => res[0].transcript).join("");
+      const transcript = Array.from(e.results)
+        .map((res: any) => res[0].transcript)
+        .join("");
       setText(transcript);
     };
-    rec.onerror = () => { setListening(false); toast.error("تعذّر التعرف على الصوت."); };
+    rec.onerror = () => {
+      setListening(false);
+      toast.error("تعذّر التعرف على الصوت.");
+    };
     rec.onend = () => setListening(false);
     recognitionRef.current = rec;
     setListening(true);
@@ -106,8 +133,10 @@ export function Translator() {
     await saveHistory(r, "image");
   };
 
-
-  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("تم النسخ"); };
+  const copy = (t: string) => {
+    navigator.clipboard.writeText(t);
+    toast.success("تم النسخ");
+  };
 
   const favorite = async () => {
     if (!result || !user) return;
@@ -139,10 +168,18 @@ export function Translator() {
 
       <Tabs defaultValue="text" className="w-full">
         <TabsList className="grid w-full grid-cols-4 rounded-xl">
-          <TabsTrigger value="text" className="rounded-lg gap-1.5"><LangIcon className="size-4" /> نص</TabsTrigger>
-          <TabsTrigger value="voice" className="rounded-lg gap-1.5"><Mic className="size-4" /> صوت</TabsTrigger>
-          <TabsTrigger value="speaker" className="rounded-lg gap-1.5"><MessageCircle className="size-4" /> متحدّث</TabsTrigger>
-          <TabsTrigger value="image" className="rounded-lg gap-1.5"><Camera className="size-4" /> صورة</TabsTrigger>
+          <TabsTrigger value="text" className="rounded-lg gap-1.5">
+            <LangIcon className="size-4" /> نص
+          </TabsTrigger>
+          <TabsTrigger value="voice" className="rounded-lg gap-1.5">
+            <Mic className="size-4" /> صوت
+          </TabsTrigger>
+          <TabsTrigger value="speaker" className="rounded-lg gap-1.5">
+            <MessageCircle className="size-4" /> متحدّث
+          </TabsTrigger>
+          <TabsTrigger value="image" className="rounded-lg gap-1.5">
+            <Camera className="size-4" /> صورة
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="text" className="mt-4 space-y-3">
@@ -153,8 +190,18 @@ export function Translator() {
             className="min-h-32 rounded-2xl text-base"
             maxLength={5000}
           />
-          <Button onClick={() => runText("text")} disabled={busy || !text.trim()} className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow">
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> ترجم</>}
+          <Button
+            onClick={() => runText("text")}
+            disabled={busy || !text.trim()}
+            className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="size-4" /> ترجم
+              </>
+            )}
           </Button>
         </TabsContent>
 
@@ -170,9 +217,25 @@ export function Translator() {
               {listening ? "جارٍ الاستماع... تحدّث الآن" : "اضغط للتحدّث"}
             </p>
           </div>
-          {text && <Textarea value={text} onChange={(e) => setText(e.target.value)} className="min-h-20 rounded-2xl" />}
-          <Button onClick={() => runText("voice")} disabled={busy || !text.trim()} className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow">
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> ترجم الكلام</>}
+          {text && (
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="min-h-20 rounded-2xl"
+            />
+          )}
+          <Button
+            onClick={() => runText("voice")}
+            disabled={busy || !text.trim()}
+            className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="size-4" /> ترجم الكلام
+              </>
+            )}
           </Button>
         </TabsContent>
 
@@ -192,7 +255,6 @@ export function Translator() {
             onResult={handleImageResult}
           />
         </TabsContent>
-
       </Tabs>
 
       {result && (
@@ -206,10 +268,20 @@ export function Translator() {
           <p className="text-lg font-semibold leading-relaxed">{result.translation}</p>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={() => speak(result.translation, targetMeta?.bcp47 ?? "en-US", gender)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-xl gap-1.5"
+              onClick={() => speak(result.translation, targetMeta?.bcp47 ?? "en-US", gender)}
+            >
               <Volume2 className="size-4" /> استمع
             </Button>
-            <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={() => copy(result.translation)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-xl gap-1.5"
+              onClick={() => copy(result.translation)}
+            >
               <Copy className="size-4" /> نسخ
             </Button>
             <Button variant="secondary" size="sm" className="rounded-xl gap-1.5" onClick={favorite}>
@@ -222,18 +294,27 @@ export function Translator() {
               <p className="text-sm font-semibold">تصريف الفعل مع أمثلة</p>
               <div className="space-y-1.5">
                 {result.conjugations.map((c, i) => (
-                  <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-card px-3 py-2 text-sm">
+                  <div
+                    key={i}
+                    className="flex flex-col gap-0.5 rounded-lg bg-card px-3 py-2 text-sm"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium">{c.pronoun} — {c.form}</span>
+                      <span className="font-medium">
+                        {c.pronoun} — {c.form}
+                      </span>
                       <button
-                        onClick={() => speak(c.example || c.form, targetMeta?.bcp47 ?? "en-US", gender)}
+                        onClick={() =>
+                          speak(c.example || c.form, targetMeta?.bcp47 ?? "en-US", gender)
+                        }
                         className="text-muted-foreground hover:text-foreground"
                         title="استمع"
                       >
                         <Volume2 className="size-4" />
                       </button>
                     </div>
-                    {c.example && <span className="text-xs text-muted-foreground">{c.example}</span>}
+                    {c.example && (
+                      <span className="text-xs text-muted-foreground">{c.example}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -249,8 +330,18 @@ type Turn = { source: string; translation: string };
 
 // وضع المتحدّث الحر: استماع مستمر، يترجم كل جملة وينطقها تلقائياً.
 function SpeakerMode({
-  targetLangName, targetBcp47, gender, srcLang, srcLangName,
-}: { targetLangName: string; targetBcp47: string; gender: VoiceGender; srcLang: string; srcLangName: string }) {
+  targetLangName,
+  targetBcp47,
+  gender,
+  srcLang,
+  srcLangName,
+}: {
+  targetLangName: string;
+  targetBcp47: string;
+  gender: VoiceGender;
+  srcLang: string;
+  srcLangName: string;
+}) {
   const doText = useServerFn(translateText);
   const [active, setActive] = useState(false);
   const [interim, setInterim] = useState("");
@@ -258,7 +349,14 @@ function SpeakerMode({
   const recRef = useRef<any>(null);
   const activeRef = useRef(false);
 
-  useEffect(() => () => { activeRef.current = false; recRef.current?.stop?.(); stopSpeaking(); }, []);
+  useEffect(
+    () => () => {
+      activeRef.current = false;
+      recRef.current?.stop?.();
+      stopSpeaking();
+    },
+    [],
+  );
 
   const handle = async (final: string) => {
     const t = final.trim();
@@ -273,7 +371,10 @@ function SpeakerMode({
   };
 
   const start = () => {
-    if (!isSpeechRecognitionSupported()) { toast.error("الإدخال الصوتي غير مدعوم في هذا المتصفح."); return; }
+    if (!isSpeechRecognitionSupported()) {
+      toast.error("الإدخال الصوتي غير مدعوم في هذا المتصفح.");
+      return;
+    }
     const SR = getSpeechRecognition();
     const rec = new SR();
     rec.lang = srcLang;
@@ -289,14 +390,25 @@ function SpeakerMode({
       setInterim(interimText);
     };
     rec.onerror = () => {};
-    rec.onend = () => { if (activeRef.current) { try { rec.start(); } catch {} } else setActive(false); };
+    rec.onend = () => {
+      if (activeRef.current) {
+        try {
+          rec.start();
+        } catch {}
+      } else setActive(false);
+    };
     recRef.current = rec;
     activeRef.current = true;
     setActive(true);
     rec.start();
   };
 
-  const stop = () => { activeRef.current = false; recRef.current?.stop?.(); setActive(false); setInterim(""); };
+  const stop = () => {
+    activeRef.current = false;
+    recRef.current?.stop?.();
+    setActive(false);
+    setInterim("");
+  };
 
   return (
     <div className="space-y-3">
@@ -316,17 +428,32 @@ function SpeakerMode({
         </button>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        {active ? "تحدّث بحرية... سيُترجم كلامك وينطق فوراً" : "اضغط الميكروفون وابدأ التحدّث بشكل مستمر"}
+        {active
+          ? "تحدّث بحرية... سيُترجم كلامك وينطق فوراً"
+          : "اضغط الميكروفون وابدأ التحدّث بشكل مستمر"}
       </p>
-      {interim && <div className="rounded-xl border border-dashed bg-muted/40 p-2 text-sm text-muted-foreground">{interim}</div>}
+      {interim && (
+        <div className="rounded-xl border border-dashed bg-muted/40 p-2 text-sm text-muted-foreground">
+          {interim}
+        </div>
+      )}
 
       <div className="space-y-2">
         {[...turns].reverse().map((t, i) => (
           <div key={turns.length - i} className="rounded-2xl border bg-card p-3">
-            <p className="text-sm text-muted-foreground" dir="auto">{t.source}</p>
+            <p className="text-sm text-muted-foreground" dir="auto">
+              {t.source}
+            </p>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="font-semibold" dir="auto">{t.translation}</p>
-              <button onClick={() => speak(t.translation, targetBcp47, gender)} className="text-muted-foreground hover:text-foreground"><Volume2 className="size-4" /></button>
+              <p className="font-semibold" dir="auto">
+                {t.translation}
+              </p>
+              <button
+                onClick={() => speak(t.translation, targetBcp47, gender)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Volume2 className="size-4" />
+              </button>
             </div>
           </div>
         ))}

@@ -8,17 +8,36 @@ import {
   stopSpeaking,
   type VoiceGender,
 } from "@/lib/speech";
-import { useUserGender, useAppLang, useNativeLangName, useStudentProfile, buildStudentContext } from "@/lib/prefs";
+import {
+  useUserGender,
+  useAppLang,
+  useNativeLangName,
+  useStudentProfile,
+  buildStudentContext,
+} from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, PhoneOff, Loader2, Radio, Sparkles, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  PhoneOff,
+  Loader2,
+  Radio,
+  Sparkles,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/voice")({
   head: () => ({
     meta: [
       { title: "المحادثة الصوتية المباشرة — ترجملي" },
-      { name: "description", content: "تحدّث مباشرة مع المعلم الذكي بصوتك، بدون أزرار، مع مقاطعة فورية وترجمة حسب لغتك." },
+      {
+        name: "description",
+        content: "تحدّث مباشرة مع المعلم الذكي بصوتك، بدون أزرار، مع مقاطعة فورية وترجمة حسب لغتك.",
+      },
       { property: "og:title", content: "المحادثة الصوتية المباشرة — ترجملي" },
       { property: "og:description", content: "محادثة صوتية لحظية مع معلّم لغة ذكي." },
       { property: "og:type", content: "website" },
@@ -39,13 +58,19 @@ function Visualizer({ phase, level }: { phase: Phase; level: number }) {
     <div className="flex h-40 items-end justify-center gap-2">
       {Array.from({ length: bars }).map((_, i) => {
         const mid = Math.abs(i - (bars - 1) / 2);
-        const wave = speaking ? 0.45 + 0.55 * Math.cos((mid / bars) * Math.PI) : level * (1 - mid / bars) + 0.08;
+        const wave = speaking
+          ? 0.45 + 0.55 * Math.cos((mid / bars) * Math.PI)
+          : level * (1 - mid / bars) + 0.08;
         const h = Math.max(10, Math.min(140, wave * 140));
         return (
           <span
             key={i}
             className={`w-3 rounded-full transition-all duration-100 ${
-              speaking ? "bg-primary animate-pulse" : phase === "listening" ? "bg-accent" : "bg-muted-foreground/30"
+              speaking
+                ? "bg-primary animate-pulse"
+                : phase === "listening"
+                  ? "bg-accent"
+                  : "bg-muted-foreground/30"
             }`}
             style={{ height: `${h}px`, animationDelay: `${i * 70}ms` }}
           />
@@ -232,9 +257,12 @@ function VoicePage() {
         setError(`ضعف في الاتصال — إعادة المحاولة (${attempt + 1}/3)...`);
         setRetry(attempt + 1);
         if (retryTimer.current) clearTimeout(retryTimer.current);
-        retryTimer.current = setTimeout(() => {
-          void sendTurn(text, attempt + 1);
-        }, 800 * Math.pow(2, attempt));
+        retryTimer.current = setTimeout(
+          () => {
+            void sendTurn(text, attempt + 1);
+          },
+          800 * Math.pow(2, attempt),
+        );
         return;
       }
       setError(
@@ -248,7 +276,6 @@ function VoicePage() {
       if (activeRef.current) startListening();
     }
   };
-
 
   const start = async () => {
     setError(null);
@@ -284,7 +311,6 @@ function VoicePage() {
   };
 
   useEffect(() => stop, []);
-
 
   const statusText =
     phase === "connecting"
@@ -351,8 +377,12 @@ function VoicePage() {
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
         <Visualizer phase={phase} level={level} />
         <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground">
-          {(phase === "connecting" || phase === "thinking") && <Loader2 className="size-4 animate-spin" />}
-          {online && !speechIssue && phase !== "idle" && <Wifi className="size-4 text-emerald-500" />}
+          {(phase === "connecting" || phase === "thinking") && (
+            <Loader2 className="size-4 animate-spin" />
+          )}
+          {online && !speechIssue && phase !== "idle" && (
+            <Wifi className="size-4 text-emerald-500" />
+          )}
           {statusText}
         </div>
 
@@ -373,14 +403,18 @@ function VoicePage() {
 
         {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
 
-
         <div className="mt-6 flex justify-center">
           {phase === "idle" ? (
             <Button size="lg" className="rounded-2xl gap-2 px-8" onClick={() => void start()}>
               <Mic className="size-5" /> ابدأ المحادثة
             </Button>
           ) : (
-            <Button size="lg" variant="destructive" className="rounded-2xl gap-2 px-8" onClick={stop}>
+            <Button
+              size="lg"
+              variant="destructive"
+              className="rounded-2xl gap-2 px-8"
+              onClick={stop}
+            >
               <PhoneOff className="size-5" /> إنهاء المحادثة
             </Button>
           )}

@@ -9,7 +9,12 @@ const STT_MODEL = "openai/gpt-4o-mini-transcribe";
 
 const VALID_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
-export type ChatMessage = { id: string; role: "user" | "assistant"; content: string; created_at: string };
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
 
 export type Correction = {
   original: string;
@@ -28,8 +33,16 @@ export type TutorReply = {
   xp: number;
 };
 
-function buildSystemPrompt(langName: string, nativeName: string, level: string, scenario?: string, student?: string) {
-  const scenarioLine = scenario ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.` : "";
+function buildSystemPrompt(
+  langName: string,
+  nativeName: string,
+  level: string,
+  scenario?: string,
+  student?: string,
+) {
+  const scenarioLine = scenario
+    ? `\nموضوع/سيناريو هذه الجلسة: ${scenario}\nالتزم بهذا السيناريو والعب دورك بواقعية، وحافظ على استمرار الموقف.`
+    : "";
   const studentLine = student
     ? `\nمعلومات الطالب الشخصية: ${student}\nخصّص المحادثة والأمثلة والتمارين حسب اسمه وعمره وعمله وحياته، ونادِه باسمه، واجعل المواضيع قريبة من واقعه واهتماماته.`
     : "";
@@ -133,7 +146,16 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     const ordered = (history ?? []).reverse();
 
     const messages = [
-      { role: "system", content: buildSystemPrompt(data.targetLangName, data.nativeLangName ?? "العربية", curLevel, data.scenario, data.student) },
+      {
+        role: "system",
+        content: buildSystemPrompt(
+          data.targetLangName,
+          data.nativeLangName ?? "العربية",
+          curLevel,
+          data.scenario,
+          data.student,
+        ),
+      },
       ...ordered.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -158,7 +180,10 @@ export const sendChatMessage = createServerFn({ method: "POST" })
             reason: String(obj.correction.reason ?? ""),
             rule: String(obj.correction.rule ?? ""),
             examples: Array.isArray(obj.correction.examples)
-              ? obj.correction.examples.map((x: any) => String(x)).filter(Boolean).slice(0, 4)
+              ? obj.correction.examples
+                  .map((x: any) => String(x))
+                  .filter(Boolean)
+                  .slice(0, 4)
               : [],
             explanation: String(obj.correction.explanation ?? ""),
           }
@@ -222,9 +247,15 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const mime = (data.mime || "audio/webm").split(";")[0];
     const ext =
-      ({ "audio/webm": "webm", "audio/mp4": "mp4", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg" } as Record<string, string>)[
-        mime
-      ] ?? "webm";
+      (
+        {
+          "audio/webm": "webm",
+          "audio/mp4": "mp4",
+          "audio/mpeg": "mp3",
+          "audio/wav": "wav",
+          "audio/ogg": "ogg",
+        } as Record<string, string>
+      )[mime] ?? "webm";
 
     const form = new FormData();
     form.append("model", STT_MODEL);
@@ -317,11 +348,17 @@ ${data.pronunciationScore !== undefined ? `درجة النطق المقاسة ف
     const obj = extractJson(String(json?.choices?.[0]?.message?.content ?? ""));
 
     const clamp = (v: any, d = 0) => Math.max(0, Math.min(100, Math.round(Number(v) || d)));
-    const pronunciation = data.pronunciationScore !== undefined ? Math.round(data.pronunciationScore) : clamp(obj?.pronunciation);
+    const pronunciation =
+      data.pronunciationScore !== undefined
+        ? Math.round(data.pronunciationScore)
+        : clamp(obj?.pronunciation);
     const grammar = clamp(obj?.grammar);
     const vocabulary = clamp(obj?.vocabulary);
     const fluency = clamp(obj?.fluency);
-    const overall = clamp(obj?.overall, Math.round((pronunciation + grammar + vocabulary + fluency) / 4));
+    const overall = clamp(
+      obj?.overall,
+      Math.round((pronunciation + grammar + vocabulary + fluency) / 4),
+    );
     const level = VALID_LEVELS.includes(obj?.level) ? String(obj.level) : curLevel;
 
     return {
@@ -332,7 +369,17 @@ ${data.pronunciationScore !== undefined ? `درجة النطق المقاسة ف
       overall,
       level,
       feedback: String(obj?.feedback ?? "").trim() || "أحسنت! استمر في التدرّب.",
-      strengths: Array.isArray(obj?.strengths) ? obj.strengths.map((x: any) => String(x)).filter(Boolean).slice(0, 5) : [],
-      improvements: Array.isArray(obj?.improvements) ? obj.improvements.map((x: any) => String(x)).filter(Boolean).slice(0, 5) : [],
+      strengths: Array.isArray(obj?.strengths)
+        ? obj.strengths
+            .map((x: any) => String(x))
+            .filter(Boolean)
+            .slice(0, 5)
+        : [],
+      improvements: Array.isArray(obj?.improvements)
+        ? obj.improvements
+            .map((x: any) => String(x))
+            .filter(Boolean)
+            .slice(0, 5)
+        : [],
     };
   });

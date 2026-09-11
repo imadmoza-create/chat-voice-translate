@@ -42,10 +42,14 @@ export type PronunciationResult = {
 };
 
 function scoreLabel(acc: number): { label: string; color: string } {
-  if (acc >= 90) return { label: "ممتاز! نطق واضح جداً", color: "text-emerald-600 dark:text-emerald-400" };
-  if (acc >= 75) return { label: "جيد جداً، اقتربت كثيراً", color: "text-emerald-600 dark:text-emerald-400" };
-  if (acc >= 55) return { label: "جيد، تحتاج بعض التحسين", color: "text-amber-600 dark:text-amber-400" };
-  if (acc >= 30) return { label: "مقبول، أعد المحاولة", color: "text-amber-600 dark:text-amber-400" };
+  if (acc >= 90)
+    return { label: "ممتاز! نطق واضح جداً", color: "text-emerald-600 dark:text-emerald-400" };
+  if (acc >= 75)
+    return { label: "جيد جداً، اقتربت كثيراً", color: "text-emerald-600 dark:text-emerald-400" };
+  if (acc >= 55)
+    return { label: "جيد، تحتاج بعض التحسين", color: "text-amber-600 dark:text-amber-400" };
+  if (acc >= 30)
+    return { label: "مقبول، أعد المحاولة", color: "text-amber-600 dark:text-amber-400" };
   return { label: "حاول مجدداً وركّز على اللفظ", color: "text-destructive" };
 }
 

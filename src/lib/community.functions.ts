@@ -13,7 +13,12 @@ export type CommunityMessage = {
   created_at: string;
 };
 
-export type BanStatus = { banned: boolean; until: string | null; reason: string | null; strikes: number };
+export type BanStatus = {
+  banned: boolean;
+  until: string | null;
+  reason: string | null;
+  strikes: number;
+};
 
 const STRIKE_LIMIT = 3; // عدد المخالفات قبل الحظر التلقائي
 const BAN_DAYS = 3; // مدة الحظر بالأيام
@@ -48,9 +53,7 @@ export const getBanStatus = createServerFn({ method: "GET" })
 
 export const getCommunityMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ lang: z.string().min(2).max(10) }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ lang: z.string().min(2).max(10) }).parse(input))
   .handler(async ({ data, context }): Promise<CommunityMessage[]> => {
     const { data: rows, error } = await context.supabase
       .from("community_messages")
@@ -65,7 +68,14 @@ export const getCommunityMessages = createServerFn({ method: "GET" })
 export type PostResult =
   | { ok: true; message: CommunityMessage }
   | { ok: false; reason: "banned"; until: string | null; hits?: string[] }
-  | { ok: false; reason: "flagged"; hits: string[]; strikes: number; banned: boolean; until: string | null };
+  | {
+      ok: false;
+      reason: "flagged";
+      hits: string[];
+      strikes: number;
+      banned: boolean;
+      until: string | null;
+    };
 
 export const postCommunityMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -91,7 +101,10 @@ export const postCommunityMessage = createServerFn({ method: "POST" })
       const newCount = (status.strikes ?? 0) + 1;
       await supabaseAdmin
         .from("user_strikes")
-        .upsert({ user_id: userId, count: newCount, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+        .upsert(
+          { user_id: userId, count: newCount, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" },
+        );
 
       if (newCount >= STRIKE_LIMIT) {
         const until = new Date(Date.now() + BAN_DAYS * 86400000).toISOString();
@@ -103,10 +116,27 @@ export const postCommunityMessage = createServerFn({ method: "POST" })
         // صفّر العدّاد بعد الحظر
         await supabaseAdmin
           .from("user_strikes")
-          .upsert({ user_id: userId, count: 0, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-        return { ok: false, reason: "flagged", hits: mod.hits, strikes: newCount, banned: true, until };
+          .upsert(
+            { user_id: userId, count: 0, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" },
+          );
+        return {
+          ok: false,
+          reason: "flagged",
+          hits: mod.hits,
+          strikes: newCount,
+          banned: true,
+          until,
+        };
       }
-      return { ok: false, reason: "flagged", hits: mod.hits, strikes: newCount, banned: false, until: null };
+      return {
+        ok: false,
+        reason: "flagged",
+        hits: mod.hits,
+        strikes: newCount,
+        banned: false,
+        until: null,
+      };
     }
 
     // 3) رسالة نظيفة — احضر بيانات الحساب وانشر

@@ -7,7 +7,13 @@ const MODEL = "google/gemini-3-flash-preview";
 // حدّ صارم لتقليل الكلفة والتأخير في الوضع الصوتي
 const MAX_VOICE_TOKENS = 120;
 
-function voicePrompt(langName: string, nativeName: string, level: string, scenario?: string, student?: string) {
+function voicePrompt(
+  langName: string,
+  nativeName: string,
+  level: string,
+  scenario?: string,
+  student?: string,
+) {
   return `أنت "المعلم الذكي" — مدرّس ${langName} ودود وطبيعي يتحدّث صوتياً مع طالب ناطق بـ${nativeName}. مستوى الطالب: ${level}.
 ${scenario ? `السيناريو: ${scenario}\n` : ""}${student ? `معلومات الطالب: ${student}\n` : ""}
 قواعد صارمة للوضع الصوتي:
@@ -73,9 +79,10 @@ export const Route = createFileRoute("/api/voice-chat")({
           .maybeSingle();
         const isDuplicate = lastMsg?.role === "user" && lastMsg?.content === text;
         if (!isDuplicate) {
-          await supabase.from("chat_messages").insert({ user_id: userId, role: "user", content: text });
+          await supabase
+            .from("chat_messages")
+            .insert({ user_id: userId, role: "user", content: text });
         }
-
 
         const { data: history } = await supabase
           .from("chat_messages")
@@ -96,7 +103,13 @@ export const Route = createFileRoute("/api/voice-chat")({
             messages: [
               {
                 role: "system",
-                content: voicePrompt(targetLangName, nativeLangName, level, body?.scenario, body?.student),
+                content: voicePrompt(
+                  targetLangName,
+                  nativeLangName,
+                  level,
+                  body?.scenario,
+                  body?.student,
+                ),
               },
               ...ordered.map((m) => ({ role: m.role, content: m.content })),
             ],

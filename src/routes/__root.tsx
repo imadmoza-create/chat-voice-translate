@@ -48,9 +48,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          حدث خطأ غير متوقع
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">حدث خطأ غير متوقع</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           يمكنك المحاولة مرة أخرى أو العودة للرئيسية.
         </p>
@@ -96,11 +94,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "ترجملي — ترجمة فورية بالنص والصوت والصورة" },
-      { name: "description", content: "Imparare con me is an AI-powered translation app with advanced learning features." },
-      { property: "og:description", content: "Imparare con me is an AI-powered translation app with advanced learning features." },
-      { name: "twitter:description", content: "Imparare con me is an AI-powered translation app with advanced learning features." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8df12006-9999-45da-b787-4f0c34718229/id-preview-7a010556--45a0f37a-2dc5-407c-93fb-68c59cc15d7c.lovable.app-1781754078262.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8df12006-9999-45da-b787-4f0c34718229/id-preview-7a010556--45a0f37a-2dc5-407c-93fb-68c59cc15d7c.lovable.app-1781754078262.png" },
+      {
+        name: "description",
+        content:
+          "Imparare con me is an AI-powered translation app with advanced learning features.",
+      },
+      {
+        property: "og:description",
+        content:
+          "Imparare con me is an AI-powered translation app with advanced learning features.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Imparare con me is an AI-powered translation app with advanced learning features.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8df12006-9999-45da-b787-4f0c34718229/id-preview-7a010556--45a0f37a-2dc5-407c-93fb-68c59cc15d7c.lovable.app-1781754078262.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8df12006-9999-45da-b787-4f0c34718229/id-preview-7a010556--45a0f37a-2dc5-407c-93fb-68c59cc15d7c.lovable.app-1781754078262.png",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: appLogo },

@@ -36,10 +36,7 @@ export const askAssistant = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...data.messages,
-    ];
+    const messages = [{ role: "system", content: SYSTEM_PROMPT }, ...data.messages];
 
     const res = await fetch(GATEWAY_URL, {
       method: "POST",

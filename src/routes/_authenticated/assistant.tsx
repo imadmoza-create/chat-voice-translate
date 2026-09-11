@@ -105,7 +105,9 @@ function AssistantPage() {
         setTranscribing(true);
         try {
           const dataUrl = await blobToDataUrl(blob);
-          const { text } = await transcribe({ data: { audio: dataUrl, mime: blob.type, lang: nativeLang } });
+          const { text } = await transcribe({
+            data: { audio: dataUrl, mime: blob.type, lang: nativeLang },
+          });
           if (text) await send(text);
           else toast.error("لم يُلتقط أي كلام.");
         } catch (err) {
@@ -145,13 +147,22 @@ function AssistantPage() {
           </div>
         </div>
         {messages.length > 0 && (
-          <Button variant="ghost" size="icon" className="rounded-xl" onClick={clearAll} title="محادثة جديدة">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
+            onClick={clearAll}
+            title="محادثة جديدة"
+          >
             <Trash2 className="size-4" />
           </Button>
         )}
       </div>
 
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto rounded-2xl border bg-card/40 p-4">
+      <div
+        ref={scrollRef}
+        className="flex-1 space-y-4 overflow-y-auto rounded-2xl border bg-card/40 p-4"
+      >
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <span className="flex size-16 items-center justify-center rounded-2xl gradient-primary text-primary-foreground shadow-glow">
@@ -159,7 +170,9 @@ function AssistantPage() {
             </span>
             <div>
               <p className="font-semibold">كيف يمكنني مساعدتك اليوم؟</p>
-              <p className="mt-1 text-sm text-muted-foreground">اسأل، ترجم، تعلّم — بالعربية أو الإيطالية أو الإنجليزية.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                اسأل، ترجم، تعلّم — بالعربية أو الإيطالية أو الإنجليزية.
+              </p>
             </div>
             <div className="grid w-full max-w-md gap-2 sm:grid-cols-2">
               {SUGGESTIONS.map((s) => (
@@ -176,10 +189,15 @@ function AssistantPage() {
           </div>
         ) : (
           messages.map((m) => (
-            <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
+            <div
+              key={m.id}
+              className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}
+            >
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                  m.role === "user" ? "gradient-primary text-primary-foreground shadow-glow" : "border bg-background"
+                  m.role === "user"
+                    ? "gradient-primary text-primary-foreground shadow-glow"
+                    : "border bg-background"
                 }`}
                 dir="auto"
               >

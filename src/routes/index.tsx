@@ -47,7 +47,9 @@ function Landing() {
           ترجملي
         </span>
         <Link to="/auth">
-          <Button variant="outline" className="rounded-xl">تسجيل الدخول</Button>
+          <Button variant="outline" className="rounded-xl">
+            تسجيل الدخول
+          </Button>
         </Link>
       </header>
 
@@ -60,11 +62,15 @@ function Landing() {
             ترجم العالم <span className="text-gradient">بالنص والصوت والصورة</span>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            تطبيق ترجمة مميز يفهم ما تكتب وتقول وتصوّر، وينطق لك النتيجة بصوت رجالي أو نسائي — مع حفظ كل ترجماتك.
+            تطبيق ترجمة مميز يفهم ما تكتب وتقول وتصوّر، وينطق لك النتيجة بصوت رجالي أو نسائي — مع
+            حفظ كل ترجماتك.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3 md:justify-start">
             <Link to="/auth">
-              <Button size="lg" className="rounded-xl gradient-primary text-primary-foreground shadow-glow hover:scale-105 transition-transform">
+              <Button
+                size="lg"
+                className="rounded-xl gradient-primary text-primary-foreground shadow-glow hover:scale-105 transition-transform"
+              >
                 ابدأ مجاناً
               </Button>
             </Link>
@@ -86,7 +92,10 @@ function Landing() {
         <h2 className="mb-8 text-center text-2xl font-bold">كل ما تحتاجه للترجمة في مكان واحد</h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
-            <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-card transition-transform hover:-translate-y-1">
+            <div
+              key={f.title}
+              className="rounded-2xl border bg-card p-6 shadow-card transition-transform hover:-translate-y-1"
+            >
               <div className="flex size-12 items-center justify-center rounded-xl gradient-accent text-accent-foreground">
                 <f.icon className="size-6" />
               </div>
