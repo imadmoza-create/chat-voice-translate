@@ -13,10 +13,23 @@ import {
   type ConversationScore,
 } from "@/lib/chat.functions";
 import { getProgress } from "@/lib/academy.functions";
-import { speak, stopSpeaking, startLiveTranscript, createSpeechStreamer, startBargeInDetector, type VoiceGender } from "@/lib/speech";
+import {
+  speak,
+  stopSpeaking,
+  startLiveTranscript,
+  createSpeechStreamer,
+  startBargeInDetector,
+  type VoiceGender,
+} from "@/lib/speech";
 import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/lib/persisted-state";
-import { useUserGender, useAppLang, useNativeLangName, useStudentProfile, buildStudentContext } from "@/lib/prefs";
+import {
+  useUserGender,
+  useAppLang,
+  useNativeLangName,
+  useStudentProfile,
+  buildStudentContext,
+} from "@/lib/prefs";
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { assessPronunciation, type PronunciationResult } from "@/lib/pronunciation";
@@ -70,7 +83,9 @@ function PronunciationPractice({
   bcp47: string;
   gender: VoiceGender;
   lang: string;
-  transcribe: (args: { data: { audio: string; mime: string; lang: string } }) => Promise<{ text: string }>;
+  transcribe: (args: {
+    data: { audio: string; mime: string; lang: string };
+  }) => Promise<{ text: string }>;
   onScore?: (accuracy: number) => void;
 }) {
   const [recording, setRecording] = useState(false);
@@ -189,8 +204,6 @@ function PronunciationPractice({
   );
 }
 
-
-
 function ChatPage() {
   const loadMsgs = useServerFn(getChatMessages);
   const sendMsg = useServerFn(sendChatMessage);
@@ -233,8 +246,6 @@ function ChatPage() {
   const startRecRef = useRef<() => void>(() => {});
   liveRef.current = liveMode;
 
-
-
   const addPronScore = (acc: number) => {
     pronScores.current.push(acc);
   };
@@ -249,8 +260,12 @@ function ChatPage() {
           ? pronScores.current.reduce((a, b) => a + b, 0) / pronScores.current.length
           : undefined;
       const r = await runAssess({
-        data: { targetLang: lang, targetLangName: langName,
-          nativeLangName: nativeName, pronunciationScore: avg },
+        data: {
+          targetLang: lang,
+          targetLangName: langName,
+          nativeLangName: nativeName,
+          pronunciationScore: avg,
+        },
       });
       setScore(r);
       setLevel(r.level);
@@ -265,7 +280,6 @@ function ChatPage() {
       setScoring(false);
     }
   };
-
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -320,8 +334,14 @@ function ChatPage() {
         },
       });
       const id = `a-${Date.now()}`;
-      setMessages((m) => [...m, { id, role: "assistant", content: r.reply, created_at: new Date().toISOString() }]);
-      setExtras((e) => ({ ...e, [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp } }));
+      setMessages((m) => [
+        ...m,
+        { id, role: "assistant", content: r.reply, created_at: new Date().toISOString() },
+      ]);
+      setExtras((e) => ({
+        ...e,
+        [id]: { translation: r.translation, correction: r.correction, xpGain: r.xp },
+      }));
       setLevel(r.level);
       setXp((v) => v + r.xp);
       if (autoSpeak || liveRef.current) {
@@ -362,7 +382,12 @@ function ChatPage() {
     setInput("");
     setMessages((m) => [
       ...m,
-      { id: `tmp-${Date.now()}`, role: "user", content: trimmed, created_at: new Date().toISOString() },
+      {
+        id: `tmp-${Date.now()}`,
+        role: "user",
+        content: trimmed,
+        created_at: new Date().toISOString(),
+      },
     ]);
     setSending(true);
     const id = `a-${Date.now()}`;
@@ -405,7 +430,10 @@ function ChatPage() {
         else stop();
       });
 
-      setMessages((m) => [...m, { id, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+      setMessages((m) => [
+        ...m,
+        { id, role: "assistant", content: "", created_at: new Date().toISOString() },
+      ]);
       setSending(false);
 
       const reader = res.body.getReader();
@@ -503,7 +531,6 @@ function ChatPage() {
     setRecording(false);
   };
 
-
   const toggleLive = () => {
     if (liveMode) {
       liveRef.current = false;
@@ -530,7 +557,6 @@ function ChatPage() {
 
   const visibleMessages = messages.filter((m) => !m.content.startsWith(LIVE_MARK));
 
-
   return (
     <div className="flex h-[calc(100vh-9rem)] flex-col">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -541,8 +567,12 @@ function ChatPage() {
           <div>
             <h1 className="text-lg font-bold leading-tight">مدرّس {langNameAr} الذكي</h1>
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">{level}</span>
-              <span className="flex items-center gap-0.5"><Sparkles className="size-3" /> {xp} XP</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                {level}
+              </span>
+              <span className="flex items-center gap-0.5">
+                <Sparkles className="size-3" /> {xp} XP
+              </span>
             </p>
           </div>
         </div>
@@ -579,7 +609,13 @@ function ChatPage() {
           >
             {autoSpeak ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-xl" title="مسح المحادثة" onClick={handleClear}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
+            title="مسح المحادثة"
+            onClick={handleClear}
+          >
             <Trash2 className="size-4" />
           </Button>
         </div>
@@ -604,7 +640,6 @@ function ChatPage() {
         ))}
       </div>
 
-
       <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border bg-card/50 p-4">
         {loading ? (
           <div className="flex h-full items-center justify-center">
@@ -616,7 +651,9 @@ function ChatPage() {
               <GraduationCap className="size-7" />
             </div>
             <p className="font-medium text-foreground">مرحباً! أنا مدرّسك لتعلّم {langNameAr}.</p>
-            <p className="text-sm">تحدّث معي بالصوت أو بالكتابة، وسأصحّح أخطاءك وأطوّر مستواك خطوة بخطوة.</p>
+            <p className="text-sm">
+              تحدّث معي بالصوت أو بالكتابة، وسأصحّح أخطاءك وأطوّر مستواك خطوة بخطوة.
+            </p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               {["ابدأ محادثة بسيطة معي", "علّمني كلمات جديدة", "صحّح لي هذه الجملة"].map((s) => (
                 <button
@@ -633,11 +670,16 @@ function ChatPage() {
           visibleMessages.map((m) => {
             const ex = extras[m.id];
             return (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={m.id}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
                 <div className="max-w-[88%] space-y-2">
                   <div
                     className={`rounded-2xl px-4 py-2.5 ${
-                      m.role === "user" ? "gradient-primary text-primary-foreground" : "border bg-card"
+                      m.role === "user"
+                        ? "gradient-primary text-primary-foreground"
+                        : "border bg-card"
                     }`}
                   >
                     {m.role === "assistant" ? (
@@ -662,7 +704,8 @@ function ChatPage() {
                             onClick={() => setShowTr((s) => ({ ...s, [m.id]: !s[m.id] }))}
                             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
                           >
-                            <Languages className="size-3.5" /> {showTr[m.id] ? "إخفاء الترجمة" : "الترجمة"}
+                            <Languages className="size-3.5" />{" "}
+                            {showTr[m.id] ? "إخفاء الترجمة" : "الترجمة"}
                           </button>
                         )}
                       </div>
@@ -670,13 +713,19 @@ function ChatPage() {
                   </div>
 
                   {m.role === "assistant" && showTr[m.id] && ex?.translation && (
-                    <div className="rounded-xl border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground" dir="rtl">
+                    <div
+                      className="rounded-xl border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                      dir="rtl"
+                    >
                       {ex.translation}
                     </div>
                   )}
 
                   {m.role === "assistant" && ex?.correction && (
-                    <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm" dir="auto">
+                    <div
+                      className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm"
+                      dir="auto"
+                    >
                       <p className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
                         <CheckCircle2 className="size-4" /> طبقة التصحيح
                       </p>
@@ -684,12 +733,16 @@ function ChatPage() {
                       {ex.correction.original && (
                         <div dir="rtl" className="text-xs text-muted-foreground">
                           <span className="font-semibold text-destructive">الخطأ: </span>
-                          <span dir="auto" className="line-through">{ex.correction.original}</span>
+                          <span dir="auto" className="line-through">
+                            {ex.correction.original}
+                          </span>
                         </div>
                       )}
 
                       <div dir="rtl" className="text-xs text-muted-foreground">
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">الصواب: </span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          الصواب:{" "}
+                        </span>
                         <button
                           type="button"
                           dir="auto"
@@ -709,8 +762,6 @@ function ChatPage() {
                         onScore={addPronScore}
                       />
 
-
-
                       {ex.correction.reason && (
                         <p className="rounded-lg bg-background/60 px-2 py-1.5 text-xs" dir="rtl">
                           <span className="font-semibold">السبب: </span>
@@ -719,7 +770,10 @@ function ChatPage() {
                       )}
 
                       {ex.correction.rule && (
-                        <p className="rounded-lg border border-dashed bg-background/60 px-2 py-1.5 text-xs" dir="rtl">
+                        <p
+                          className="rounded-lg border border-dashed bg-background/60 px-2 py-1.5 text-xs"
+                          dir="rtl"
+                        >
                           <span className="font-semibold text-primary">القاعدة: </span>
                           {ex.correction.rule}
                         </p>
@@ -776,7 +830,6 @@ function ChatPage() {
           </div>
         )}
         {(sending || transcribing) && (
-
           <div className="flex justify-start">
             <div className="flex items-center gap-2 rounded-2xl border bg-card px-4 py-2.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
@@ -874,7 +927,10 @@ function ChatPage() {
                     <span>{row.value}%</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full gradient-primary transition-all" style={{ width: `${row.value}%` }} />
+                    <div
+                      className="h-full gradient-primary transition-all"
+                      style={{ width: `${row.value}%` }}
+                    />
                   </div>
                 </div>
               ))}
@@ -886,7 +942,9 @@ function ChatPage() {
 
             {score.strengths.length > 0 && (
               <div className="mt-3">
-                <p className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">نقاط القوة</p>
+                <p className="mb-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  نقاط القوة
+                </p>
                 <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
                   {score.strengths.map((s, i) => (
                     <li key={i}>{s}</li>
@@ -897,7 +955,9 @@ function ChatPage() {
 
             {score.improvements.length > 0 && (
               <div className="mt-3">
-                <p className="mb-1 text-sm font-semibold text-amber-600 dark:text-amber-400">للتحسين</p>
+                <p className="mb-1 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                  للتحسين
+                </p>
                 <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
                   {score.improvements.map((s, i) => (
                     <li key={i}>{s}</li>
@@ -906,13 +966,15 @@ function ChatPage() {
               </div>
             )}
 
-            <Button className="mt-5 w-full rounded-xl gradient-primary text-primary-foreground" onClick={() => setScore(null)}>
+            <Button
+              className="mt-5 w-full rounded-xl gradient-primary text-primary-foreground"
+              onClick={() => setScore(null)}
+            >
               متابعة المحادثة
             </Button>
           </div>
         </div>
       )}
     </div>
-
   );
 }

@@ -32,14 +32,21 @@ function HistoryPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    let q = supabase.from("translations").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(200);
+    let q = supabase
+      .from("translations")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (filter === "fav") q = q.eq("is_favorite", true);
     const { data } = await q;
     setRows((data as Row[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filter]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [user, filter]);
 
   const toggleFav = async (r: Row) => {
     await supabase.from("translations").update({ is_favorite: !r.is_favorite }).eq("id", r.id);
@@ -52,10 +59,17 @@ function HistoryPage() {
     toast.success("تم الحذف");
   };
 
-  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("تم النسخ"); };
+  const copy = (t: string) => {
+    navigator.clipboard.writeText(t);
+    toast.success("تم النسخ");
+  };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="size-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -63,8 +77,18 @@ function HistoryPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">سجل الترجمات</h1>
         <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-          <button onClick={() => setFilter("all")} className={`rounded-lg px-3 py-1 text-sm font-medium ${filter === "all" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>الكل</button>
-          <button onClick={() => setFilter("fav")} className={`rounded-lg px-3 py-1 text-sm font-medium ${filter === "fav" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>المفضلة</button>
+          <button
+            onClick={() => setFilter("all")}
+            className={`rounded-lg px-3 py-1 text-sm font-medium ${filter === "all" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+          >
+            الكل
+          </button>
+          <button
+            onClick={() => setFilter("fav")}
+            className={`rounded-lg px-3 py-1 text-sm font-medium ${filter === "fav" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+          >
+            المفضلة
+          </button>
         </div>
       </div>
 
@@ -78,18 +102,46 @@ function HistoryPage() {
           {rows.map((r) => (
             <div key={r.id} className="rounded-2xl border bg-card p-4 shadow-card">
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{r.source_lang || "?"} ← {r.target_lang}</span>
+                <span>
+                  {r.source_lang || "?"} ← {r.target_lang}
+                </span>
                 <span>{new Date(r.created_at).toLocaleDateString("ar")}</span>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-2">{r.source_text}</p>
               <p className="mt-1 font-semibold">{r.translated_text}</p>
               <div className="mt-3 flex gap-1">
-                <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => speak(r.translated_text, "en-US", "female" as VoiceGender)}><Volume2 className="size-4" /></Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => copy(r.translated_text)}><Copy className="size-4" /></Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => toggleFav(r)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg"
+                  onClick={() => speak(r.translated_text, "en-US", "female" as VoiceGender)}
+                >
+                  <Volume2 className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg"
+                  onClick={() => copy(r.translated_text)}
+                >
+                  <Copy className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg"
+                  onClick={() => toggleFav(r)}
+                >
                   <Star className={`size-4 ${r.is_favorite ? "fill-accent text-accent" : ""}`} />
                 </Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-lg text-destructive" onClick={() => remove(r.id)}><Trash2 className="size-4" /></Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg text-destructive"
+                  onClick={() => remove(r.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             </div>
           ))}

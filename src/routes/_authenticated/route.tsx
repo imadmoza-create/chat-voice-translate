@@ -3,7 +3,18 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import appLogo from "@/assets/app-logo.png";
-import { Languages, History, LogOut, Loader2, GraduationCap, Bot, Trophy, Settings, Users, Radio } from "lucide-react";
+import {
+  Languages,
+  History,
+  LogOut,
+  Loader2,
+  GraduationCap,
+  Bot,
+  Trophy,
+  Settings,
+  Users,
+  Radio,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -42,52 +53,95 @@ function AuthenticatedLayout() {
           </Link>
           <nav className="flex items-center gap-1">
             <Link to="/app">
-              <Button variant={pathname === "/app" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/app" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Languages className="size-4" /> الترجمة
               </Button>
             </Link>
             <Link to="/academy">
-              <Button variant={pathname === "/academy" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/academy" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Trophy className="size-4" /> الأكاديمية
               </Button>
             </Link>
             <Link to="/learn">
-              <Button variant={pathname === "/learn" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/learn" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <GraduationCap className="size-4" /> تعلّم
               </Button>
             </Link>
             <Link to="/chat">
-              <Button variant={pathname === "/chat" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/chat" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <GraduationCap className="size-4" /> المدرّس
               </Button>
             </Link>
             <Link to="/voice">
-              <Button variant={pathname === "/voice" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/voice" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Radio className="size-4" /> صوتي
               </Button>
             </Link>
 
             <Link to="/assistant">
-              <Button variant={pathname === "/assistant" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/assistant" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Bot className="size-4" /> المساعد
               </Button>
             </Link>
             <Link to="/community">
-              <Button variant={pathname === "/community" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/community" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Users className="size-4" /> الدردشة
               </Button>
             </Link>
             <Link to="/history">
-              <Button variant={pathname === "/history" ? "secondary" : "ghost"} size="sm" className="rounded-xl gap-1.5">
+              <Button
+                variant={pathname === "/history" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <History className="size-4" /> السجل
               </Button>
             </Link>
             <Link to="/settings">
-              <Button variant={pathname === "/settings" ? "secondary" : "ghost"} size="icon" className="rounded-xl" title="الإعدادات">
+              <Button
+                variant={pathname === "/settings" ? "secondary" : "ghost"}
+                size="icon"
+                className="rounded-xl"
+                title="الإعدادات"
+              >
                 <Settings className="size-4" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="rounded-xl" onClick={handleSignOut} title="تسجيل الخروج">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl"
+              onClick={handleSignOut}
+              title="تسجيل الخروج"
+            >
               <LogOut className="size-4" />
             </Button>
           </nav>

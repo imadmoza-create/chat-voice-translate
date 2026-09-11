@@ -58,7 +58,10 @@ Use this exact shape:
 "connectors":[{"word":"<connector word in ${data.targetLang}>","meaning":"<${nl} meaning>","example":"<short example in ${data.targetLang}>"}],
 "phrases":[{"text":"<useful daily phrase in ${data.targetLang}>","translation":"<${nl} translation>"}]}
 Give 14 vocab items, 4 grammar points, 6 connectors, 6 phrases. Vocabulary must match the topic and ${data.level} difficulty.`;
-    const obj = await callJson(sys, `Topic (in ${nl}): ${data.theme}. Level: ${data.level}. Target language: ${data.targetLang}.`);
+    const obj = await callJson(
+      sys,
+      `Topic (in ${nl}): ${data.theme}. Level: ${data.level}. Target language: ${data.targetLang}.`,
+    );
     return {
       vocab: Array.isArray(obj.vocab) ? obj.vocab.slice(0, 20) : [],
       grammar: obj.grammar ?? { title: "", explanation: "", points: [] },
@@ -84,7 +87,10 @@ export const generateVerbPack = createServerFn({ method: "POST" })
 Shape:
 {"verbs":[{"infinitive":"<verb in ${data.targetLang}>","translation":"<${nl} meaning>","type":"<one of: عادي|منعكس|مركّب|شاذ>","tenses":[{"tense":"<tense name in ${nl}>","forms":[{"pronoun":"<pronoun in ${data.targetLang}>","form":"<conjugated form>"}],"example":"<example sentence in ${data.targetLang}> — <${nl} translation>"}]}]}
 Return 6 verbs of the requested category. For each verb include 3 important tenses (present, past, future or the most relevant), each with full person conjugation.`;
-    const obj = await callJson(sys, `Verb category (${nl}): ${data.category}. Level: ${data.level}. Language: ${data.targetLang}.`);
+    const obj = await callJson(
+      sys,
+      `Verb category (${nl}): ${data.category}. Level: ${data.level}. Language: ${data.targetLang}.`,
+    );
     return { verbs: Array.isArray(obj.verbs) ? obj.verbs.slice(0, 10) : [] };
   });
 
@@ -112,7 +118,10 @@ export const generateExercise = createServerFn({ method: "POST" })
       shape = `{"items":[{"task":"<task instruction in ${nl}>","sample":"<model answer in ${data.targetLang}>","sampleTranslation":"<${nl} translation>"}]}  (5 items)`;
     }
     const sys = `You build CEFR ${data.level} ${data.type} exercises in ${data.targetLang} for an ${nl} speaker. ${JSON_RULE} Shape: ${shape}`;
-    const obj = await callJson(sys, `Topic (${nl}): ${data.theme}. Level: ${data.level}. Type: ${data.type}. Language: ${data.targetLang}.`);
+    const obj = await callJson(
+      sys,
+      `Topic (${nl}): ${data.theme}. Level: ${data.level}. Type: ${data.type}. Language: ${data.targetLang}.`,
+    );
     return { items: Array.isArray(obj.items) ? obj.items.slice(0, 10) : [] };
   });
 
@@ -163,7 +172,10 @@ export const generateDailyPlan = createServerFn({ method: "POST" })
 Shape: {"summary":"<one motivating ${nl} sentence>","tasks":[{"title":"<task in ${nl}>","skill":"<مفردات|قواعد|استماع|كتابة|تحدّث|مراجعة>","minutes":<number>}]}
 Return 6 tasks totaling about 45 minutes.`;
     const obj = await callJson(sys, `Current level: ${data.level}. Language: ${data.targetLang}.`);
-    return { summary: String(obj.summary ?? ""), tasks: Array.isArray(obj.tasks) ? obj.tasks.slice(0, 10) : [] };
+    return {
+      summary: String(obj.summary ?? ""),
+      tasks: Array.isArray(obj.tasks) ? obj.tasks.slice(0, 10) : [],
+    };
   });
 
 // ===================== حوار محادثة =====================
@@ -182,8 +194,14 @@ export const generateDialogue = createServerFn({ method: "POST" })
     const sys = `Write a natural CEFR ${data.level} dialogue in ${data.targetLang} for an ${nl} learner. ${JSON_RULE}
 Shape: {"title":"<title in ${nl}>","lines":[{"speaker":"<A or B>","text":"<line in ${data.targetLang}>","translation":"<${nl} translation>"}]}
 Return 10 lines about the given scenario.`;
-    const obj = await callJson(sys, `Scenario (${nl}): ${data.scenario}. Level: ${data.level}. Language: ${data.targetLang}.`);
-    return { title: String(obj.title ?? data.scenario), lines: Array.isArray(obj.lines) ? obj.lines.slice(0, 16) : [] };
+    const obj = await callJson(
+      sys,
+      `Scenario (${nl}): ${data.scenario}. Level: ${data.level}. Language: ${data.targetLang}.`,
+    );
+    return {
+      title: String(obj.title ?? data.scenario),
+      lines: Array.isArray(obj.lines) ? obj.lines.slice(0, 16) : [],
+    };
   });
 
 // ===================== التقدّم =====================
@@ -259,7 +277,10 @@ export const updateProgress = createServerFn({ method: "POST" })
 const AddReviewsInput = z.object({
   lang: z.string().min(2).max(40),
   level: z.string().min(2).max(3),
-  words: z.array(z.object({ word: z.string().min(1).max(120), translation: z.string().min(1).max(200) })).min(1).max(40),
+  words: z
+    .array(z.object({ word: z.string().min(1).max(120), translation: z.string().min(1).max(200) }))
+    .min(1)
+    .max(40),
 });
 
 export const addReviews = createServerFn({ method: "POST" })

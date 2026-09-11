@@ -23,7 +23,17 @@ export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
-const FEMALE_HINTS = ["female", "woman", "zira", "samantha", "salma", "hoda", "amira", "google.*female", "femme"];
+const FEMALE_HINTS = [
+  "female",
+  "woman",
+  "zira",
+  "samantha",
+  "salma",
+  "hoda",
+  "amira",
+  "google.*female",
+  "femme",
+];
 const MALE_HINTS = ["male", "man", "david", "fred", "naayf", "majed", "homme", "google.*male"];
 
 function pickVoice(voices: SpeechSynthesisVoice[], langPrefix: string, gender: VoiceGender) {
@@ -56,7 +66,6 @@ export async function speak(text: string, bcp47: string, gender: VoiceGender, on
   }
   window.speechSynthesis.speak(utter);
 }
-
 
 export function stopSpeaking() {
   if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
@@ -138,8 +147,6 @@ export function startLiveTranscript(
     }
   };
 }
-
-
 
 // ---- بثّ صوتي منخفض التأخير: انطق الجمل فور اكتمالها أثناء وصول البثّ ----
 export function createSpeechStreamer(bcp47: string, gender: VoiceGender, onDone?: () => void) {

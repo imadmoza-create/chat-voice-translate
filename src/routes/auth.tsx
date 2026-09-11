@@ -100,24 +100,62 @@ function AuthPage() {
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="name">الاسم</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" required />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="اسمك"
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">رقم الهاتف (أساسي للحساب)</Label>
-                <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665xxxxxxxx" required />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+9665xxxxxxxx"
+                  required
+                />
               </div>
             </>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="email">البريد الإلكتروني</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">كلمة المرور</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} required />
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              minLength={6}
+              required
+            />
           </div>
-          <Button type="submit" disabled={busy} className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow">
-            {busy ? <Loader2 className="size-4 animate-spin" /> : mode === "login" ? "دخول" : "إنشاء الحساب"}
+          <Button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : mode === "login" ? (
+              "دخول"
+            ) : (
+              "إنشاء الحساب"
+            )}
           </Button>
         </form>
 
@@ -125,7 +163,12 @@ function AuthPage() {
           <span className="h-px flex-1 bg-border" /> أو <span className="h-px flex-1 bg-border" />
         </div>
 
-        <Button variant="outline" onClick={handleGoogle} disabled={busy} className="w-full rounded-xl">
+        <Button
+          variant="outline"
+          onClick={handleGoogle}
+          disabled={busy}
+          className="w-full rounded-xl"
+        >
           المتابعة عبر جوجل
         </Button>
 

@@ -112,7 +112,6 @@ export function setNativeLang(lang: string) {
   }
 }
 
-
 export function useNativeLang(): [string, (l: string) => void] {
   const [lang, setLang] = useState<string>("ar");
   useEffect(() => {
@@ -127,8 +126,6 @@ export function useNativeLang(): [string, (l: string) => void] {
   }, []);
   return [lang, setNativeLang];
 }
-
-
 
 export function getUserGender(): UserGender {
   if (typeof window === "undefined") return "male";

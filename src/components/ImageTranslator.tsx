@@ -4,7 +4,11 @@ import { translateImage } from "@/lib/translate.functions";
 import type { Conjugation } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Upload, Loader2, Crop, X, Sparkles, Check, Camera as CameraIcon } from "lucide-react";
@@ -68,7 +72,10 @@ export function ImageTranslator({
   const addFiles = async (files: FileList) => {
     const next: ImgItem[] = [];
     for (const file of Array.from(files).slice(0, 6)) {
-      if (file.size > 8_000_000) { toast.error(`تم تجاوز الحد 8MB: ${file.name}`); continue; }
+      if (file.size > 8_000_000) {
+        toast.error(`تم تجاوز الحد 8MB: ${file.name}`);
+        continue;
+      }
       const dataUrl = await readFile(file);
       next.push({ id: crypto.randomUUID(), dataUrl });
     }
@@ -97,18 +104,32 @@ export function ImageTranslator({
     if (!dragStart.current) return;
     const p = pointer(e);
     const s = dragStart.current;
-    setSel({ x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), w: Math.abs(p.x - s.x), h: Math.abs(p.y - s.y) });
+    setSel({
+      x: Math.min(s.x, p.x),
+      y: Math.min(s.y, p.y),
+      w: Math.abs(p.x - s.x),
+      h: Math.abs(p.y - s.y),
+    });
   };
-  const onUp = () => { dragStart.current = null; };
+  const onUp = () => {
+    dragStart.current = null;
+  };
 
   const applyCrop = async () => {
     if (!cropping) return;
     const el = imgElRef.current;
-    if (!el || !sel || sel.w < 5 || sel.h < 5) { setCropping(null); setSel(null); return; }
+    if (!el || !sel || sel.w < 5 || sel.h < 5) {
+      setCropping(null);
+      setSel(null);
+      return;
+    }
     const scaleX = el.naturalWidth / el.clientWidth;
     const scaleY = el.naturalHeight / el.clientHeight;
     const natRect: Rect = {
-      x: sel.x * scaleX, y: sel.y * scaleY, w: sel.w * scaleX, h: sel.h * scaleY,
+      x: sel.x * scaleX,
+      y: sel.y * scaleY,
+      w: sel.w * scaleX,
+      h: sel.h * scaleY,
     };
     try {
       const cropped = await cropDataUrl(cropping.dataUrl, natRect);
@@ -128,13 +149,21 @@ export function ImageTranslator({
     try {
       const results: ImgResult[] = [];
       for (const it of items) {
-        const r = (await doImage({ data: { image: it.dataUrl, targetLang: targetLangName } })) as ImgResult;
+        const r = (await doImage({
+          data: { image: it.dataUrl, targetLang: targetLangName },
+        })) as ImgResult;
         results.push(r);
       }
       const combined: ImgResult = {
         detectedLang: results[0]?.detectedLang ?? "",
-        sourceText: results.map((r) => r.sourceText).filter(Boolean).join("\n\n"),
-        translation: results.map((r) => r.translation).filter(Boolean).join("\n\n"),
+        sourceText: results
+          .map((r) => r.sourceText)
+          .filter(Boolean)
+          .join("\n\n"),
+        translation: results
+          .map((r) => r.translation)
+          .filter(Boolean)
+          .join("\n\n"),
         conjugations: results.flatMap((r) => r.conjugations),
       };
       onResult(combined);
@@ -194,7 +223,10 @@ export function ImageTranslator({
                 <img src={it.dataUrl} alt="صورة" className="aspect-square w-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-1.5">
                   <button
-                    onClick={() => { setCropping(it); setSel(null); }}
+                    onClick={() => {
+                      setCropping(it);
+                      setSel(null);
+                    }}
                     className="rounded-md bg-card/90 p-1 text-foreground"
                     title="تحديد منطقة النص"
                   >
@@ -219,13 +251,31 @@ export function ImageTranslator({
               </button>
             )}
           </div>
-          <Button onClick={translateAll} disabled={busy} className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow">
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <><Sparkles className="size-4" /> ترجم الصور ({items.length})</>}
+          <Button
+            onClick={translateAll}
+            disabled={busy}
+            className="w-full rounded-xl gradient-primary text-primary-foreground shadow-glow"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="size-4" /> ترجم الصور ({items.length})
+              </>
+            )}
           </Button>
         </>
       )}
 
-      <Dialog open={!!cropping} onOpenChange={(o) => { if (!o) { setCropping(null); setSel(null); } }}>
+      <Dialog
+        open={!!cropping}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCropping(null);
+            setSel(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>تحديد منطقة النص</DialogTitle>
@@ -250,12 +300,26 @@ export function ImageTranslator({
                   />
                 )}
               </div>
-              <p className="mt-2 text-center text-xs text-muted-foreground">اسحب لرسم مستطيل حول النص المطلوب</p>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                اسحب لرسم مستطيل حول النص المطلوب
+              </p>
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="secondary" className="rounded-xl" onClick={() => { setCropping(null); setSel(null); }}>إلغاء</Button>
-            <Button className="rounded-xl gradient-primary text-primary-foreground gap-1.5" onClick={applyCrop}>
+            <Button
+              variant="secondary"
+              className="rounded-xl"
+              onClick={() => {
+                setCropping(null);
+                setSel(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="rounded-xl gradient-primary text-primary-foreground gap-1.5"
+              onClick={applyCrop}
+            >
               <Check className="size-4" /> تطبيق
             </Button>
           </DialogFooter>

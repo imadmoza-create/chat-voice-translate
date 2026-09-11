@@ -1,9 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Settings as SettingsIcon, Languages, Volume2, Smartphone, Eye, Loader2, GraduationCap, Mail, UserRound, Save } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Languages,
+  Volume2,
+  Smartphone,
+  Eye,
+  Loader2,
+  GraduationCap,
+  Mail,
+  UserRound,
+  Save,
+} from "lucide-react";
 import { LANGUAGES, langByCode } from "@/lib/languages";
-import { useAppLang, useUserGender, detectDeviceLang, useNativeLang, useStudentProfile } from "@/lib/prefs";
+import {
+  useAppLang,
+  useUserGender,
+  detectDeviceLang,
+  useNativeLang,
+  useStudentProfile,
+} from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
 import { Button } from "@/components/ui/button";
@@ -45,10 +62,11 @@ function SettingsPage() {
       .select("account_number, phone")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => data && setAccount({ account_number: data.account_number, phone: data.phone }));
+      .then(
+        ({ data }) =>
+          data && setAccount({ account_number: data.account_number, phone: data.phone }),
+      );
   }, [user]);
-
-
 
   const [studentProfile, saveStudentProfile] = useStudentProfile();
   const [profileForm, setProfileForm] = useState(studentProfile);
@@ -123,7 +141,6 @@ function SettingsPage() {
     }
   }
 
-
   const runTranslate = useServerFn(translateText);
   const [sampleIdx, setSampleIdx] = useState(0);
   const [preview, setPreview] = useState<string>("");
@@ -168,13 +185,14 @@ function SettingsPage() {
         </div>
         <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-2.5 text-sm">
           <span className="text-muted-foreground">رقم الهاتف</span>
-          <span className="font-semibold" dir="ltr">{account.phone || "غير مسجّل"}</span>
+          <span className="font-semibold" dir="ltr">
+            {account.phone || "غير مسجّل"}
+          </span>
         </div>
       </div>
 
       {/* البريد الإلكتروني */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
-
         <div className="flex items-center gap-2 font-bold">
           <Mail className="size-5 text-primary" /> البريد الإلكتروني
         </div>
@@ -246,7 +264,9 @@ function SettingsPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">لمحة عن حياتك واهتماماتك</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            لمحة عن حياتك واهتماماتك
+          </label>
           <textarea
             value={profileForm.bio}
             onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
@@ -261,7 +281,6 @@ function SettingsPage() {
         </Button>
       </div>
 
-
       {/* اللغة الأساسية (لغتك الأم) */}
       <div className="space-y-2 rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2 font-bold">
@@ -269,7 +288,9 @@ function SettingsPage() {
         </div>
         <p className="text-sm text-muted-foreground">
           لغتك الأم التي تُشرح بها التصحيحات. الافتراضي لغة هاتفك:{" "}
-          <span className="font-medium text-foreground">{langByCode(deviceLang)?.nameAr ?? deviceLang}</span>
+          <span className="font-medium text-foreground">
+            {langByCode(deviceLang)?.nameAr ?? deviceLang}
+          </span>
         </p>
         <select
           value={nativeLang}
@@ -292,7 +313,9 @@ function SettingsPage() {
               return;
             }
             setNativeLang(deviceLang);
-            toast.success(`تم ضبط لغتك الأساسية على لغة الهاتف: ${langByCode(deviceLang)?.nameAr ?? deviceLang}`);
+            toast.success(
+              `تم ضبط لغتك الأساسية على لغة الهاتف: ${langByCode(deviceLang)?.nameAr ?? deviceLang}`,
+            );
           }}
         >
           <Smartphone className="size-4" /> استخدم لغة الهاتف{nativeLang === deviceLang ? " ✓" : ""}
@@ -305,9 +328,11 @@ function SettingsPage() {
           <Languages className="size-5 text-primary" /> اللغة المطلوب تعلّمها وترجمتها
         </div>
         <p className="text-sm text-muted-foreground">
-          هذه اللغة تُستخدم في كل أقسام التطبيق (الكلمات، الأفعال، الاختبار).
-          اللغة الأساسية الافتراضية مأخوذة من لغة هاتفك:{" "}
-          <span className="font-medium text-foreground">{langByCode(deviceLang)?.nameAr ?? deviceLang}</span>
+          هذه اللغة تُستخدم في كل أقسام التطبيق (الكلمات، الأفعال، الاختبار). اللغة الأساسية
+          الافتراضية مأخوذة من لغة هاتفك:{" "}
+          <span className="font-medium text-foreground">
+            {langByCode(deviceLang)?.nameAr ?? deviceLang}
+          </span>
         </p>
         <select
           value={lang}
@@ -339,8 +364,18 @@ function SettingsPage() {
           يُنطق الصوت بعكس جنسك — الصوت الحالي: {voiceGender === "female" ? "مؤنث" : "مذكر"}
         </p>
         <div className="mt-2 flex items-center gap-1 rounded-xl bg-muted p-1">
-          <button onClick={() => setGender("male")} className={`flex-1 rounded-lg px-3 py-2 font-medium ${gender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>ذكر</button>
-          <button onClick={() => setGender("female")} className={`flex-1 rounded-lg px-3 py-2 font-medium ${gender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>أنثى</button>
+          <button
+            onClick={() => setGender("male")}
+            className={`flex-1 rounded-lg px-3 py-2 font-medium ${gender === "male" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+          >
+            ذكر
+          </button>
+          <button
+            onClick={() => setGender("female")}
+            className={`flex-1 rounded-lg px-3 py-2 font-medium ${gender === "female" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+          >
+            أنثى
+          </button>
         </div>
       </div>
 
@@ -350,28 +385,43 @@ function SettingsPage() {
           <Eye className="size-5 text-primary" /> معاينة قبل البدء
         </div>
         <p className="text-sm text-muted-foreground">
-          جرّب مثال ترجمة بالصوت والصورة باللغة الحالية ({targetLang?.nameAr ?? lang}) قبل بدء الاختبار.
+          جرّب مثال ترجمة بالصوت والصورة باللغة الحالية ({targetLang?.nameAr ?? lang}) قبل بدء
+          الاختبار.
         </p>
 
         <div className="flex flex-col items-center gap-3 rounded-2xl border bg-background p-5 text-center">
           <div className="text-6xl leading-none">{sample.emoji}</div>
-          <div className="font-bold" dir="rtl">{sample.ar}</div>
+          <div className="font-bold" dir="rtl">
+            {sample.ar}
+          </div>
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> جارٍ الترجمة…
             </div>
           ) : preview ? (
-            <div className="text-lg font-medium text-primary" dir="auto">{preview}</div>
+            <div className="text-lg font-medium text-primary" dir="auto">
+              {preview}
+            </div>
           ) : (
             <div className="text-sm text-muted-foreground">اضغط للمعاينة بالصوت</div>
           )}
 
           <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-            <Button size="sm" className="gap-1.5 rounded-xl" onClick={() => loadPreview()} disabled={loading}>
+            <Button
+              size="sm"
+              className="gap-1.5 rounded-xl"
+              onClick={() => loadPreview()}
+              disabled={loading}
+            >
               <Volume2 className="size-4" /> ترجمة واستماع
             </Button>
             {preview && !loading && (
-              <Button variant="secondary" size="sm" className="gap-1.5 rounded-xl" onClick={() => speak(preview, bcp47, voiceGender)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-1.5 rounded-xl"
+                onClick={() => speak(preview, bcp47, voiceGender)}
+              >
                 <Volume2 className="size-4" /> إعادة الصوت
               </Button>
             )}
