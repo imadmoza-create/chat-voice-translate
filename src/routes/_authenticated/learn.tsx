@@ -278,6 +278,21 @@ const COMMON_VERBS = [
   "يحب",
   "يرى",
   "يأتي",
+  "يفهم",
+  "يسأل",
+  "يجيب",
+  "يفتح",
+  "يغلق",
+  "يشتري",
+  "يبيع",
+  "يسافر",
+  "يتعلّم",
+  "يساعد",
+  "ينتظر",
+  "يستمع",
+  "يكون",
+  "يملك",
+  "يستطيع",
 ];
 
 function VerbTrainer({ lang, voiceGender }: { lang: string; voiceGender: VoiceGender }) {
