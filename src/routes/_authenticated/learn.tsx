@@ -57,6 +57,11 @@ function LearnCard({
       <div className="text-sm text-muted-foreground" dir="auto">
         {text}
       </div>
+      {item.note && (
+        <div className="w-full rounded-lg bg-muted px-2.5 py-2 text-xs leading-5 text-muted-foreground">
+          {item.note}
+        </div>
+      )}
       <Button
         variant="secondary"
         size="sm"
