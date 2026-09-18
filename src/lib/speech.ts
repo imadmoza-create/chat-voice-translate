@@ -176,7 +176,7 @@ export function createSpeechStreamer(
       return;
     }
     speaking = true;
-    void speak(chunk, bcp47, gender, next);
+    void speak(chunk, bcp47, gender, next, rate);
   };
 
   const flushSentences = (force: boolean) => {
