@@ -460,17 +460,20 @@ function buildQuestions(items: LearnItem[], lang: string, cache: Record<string, 
 
 function Quiz({
   items,
+  mine,
   lang,
   cache,
   voiceGender,
   ready,
 }: {
   items: LearnItem[];
+  mine: LearnItem[];
   lang: string;
   cache: Record<string, string>;
   voiceGender: VoiceGender;
   ready: boolean;
 }) {
+  const [scope, setScope] = usePersistedState<string>("quiz_scope", "all");
   const [queue, setQueue] = useState<QuizQ[]>([]);
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState(0);
