@@ -47,7 +47,13 @@ function pickVoice(voices: SpeechSynthesisVoice[], langPrefix: string, gender: V
   return pool[0];
 }
 
-export async function speak(text: string, bcp47: string, gender: VoiceGender, onEnd?: () => void) {
+export async function speak(
+  text: string,
+  bcp47: string,
+  gender: VoiceGender,
+  onEnd?: () => void,
+  rate = 0.98,
+) {
   if (typeof window === "undefined" || !window.speechSynthesis || !text) {
     onEnd?.();
     return;
@@ -59,7 +65,7 @@ export async function speak(text: string, bcp47: string, gender: VoiceGender, on
   const v = pickVoice(voices, bcp47.split("-")[0], gender);
   if (v) utter.voice = v;
   utter.pitch = gender === "female" ? 1.15 : 0.8;
-  utter.rate = 0.98;
+  utter.rate = rate;
   if (onEnd) {
     utter.onend = () => onEnd();
     utter.onerror = () => onEnd();
