@@ -483,8 +483,18 @@ function Quiz({
   const [started, setStarted] = useState(false);
   const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
 
+  // نطاق الاختبار: كل الكلمات أو فئة واحدة (مثل أجزاء الجسم)
+  const scopedItems: LearnItem[] =
+    scope === "all"
+      ? items
+      : scope === "pronouns"
+        ? PRONOUNS
+        : scope === "mine"
+          ? mine
+          : (WORD_CATEGORIES.find((c) => c.id === scope)?.items ?? items);
+
   const start = () => {
-    const qs = buildQuestions(items, lang, cache);
+    const qs = buildQuestions(scopedItems, lang, cache);
     setQueue(qs);
     setIdx(0);
     setScore(0);
