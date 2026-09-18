@@ -260,6 +260,7 @@ function LearnPage() {
       {tab === "quiz" && (
         <Quiz
           items={allItems}
+          mine={mine}
           lang={lang}
           cache={cache}
           voiceGender={voiceGender}
