@@ -260,6 +260,7 @@ function LearnPage() {
       {tab === "quiz" && (
         <Quiz
           items={allItems}
+          mine={mine}
           lang={lang}
           cache={cache}
           voiceGender={voiceGender}
@@ -459,17 +460,20 @@ function buildQuestions(items: LearnItem[], lang: string, cache: Record<string, 
 
 function Quiz({
   items,
+  mine,
   lang,
   cache,
   voiceGender,
   ready,
 }: {
   items: LearnItem[];
+  mine: LearnItem[];
   lang: string;
   cache: Record<string, string>;
   voiceGender: VoiceGender;
   ready: boolean;
 }) {
+  const [scope, setScope] = usePersistedState<string>("quiz_scope", "all");
   const [queue, setQueue] = useState<QuizQ[]>([]);
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -479,8 +483,18 @@ function Quiz({
   const [started, setStarted] = useState(false);
   const bcp47 = langByCode(lang)?.bcp47 ?? "en-US";
 
+  // نطاق الاختبار: كل الكلمات أو فئة واحدة (مثل أجزاء الجسم)
+  const scopedItems: LearnItem[] =
+    scope === "all"
+      ? items
+      : scope === "pronouns"
+        ? PRONOUNS
+        : scope === "mine"
+          ? mine
+          : (WORD_CATEGORIES.find((c) => c.id === scope)?.items ?? items);
+
   const start = () => {
-    const qs = buildQuestions(items, lang, cache);
+    const qs = buildQuestions(scopedItems, lang, cache);
     setQueue(qs);
     setIdx(0);
     setScore(0);
@@ -527,9 +541,26 @@ function Quiz({
         <p className="text-muted-foreground">
           اختبر معرفتك! اختر الترجمة الصحيحة للكلمة. الأخطاء تتكرر تلقائياً حتى تتقنها.
         </p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {[
+            { id: "all", label: "🌍 كل الكلمات" },
+            ...WORD_CATEGORIES.map((c) => ({ id: c.id, label: `${c.emoji} ${c.title}` })),
+            { id: "pronouns", label: "👤 الضمائر" },
+            { id: "mine", label: "📝 سجلي" },
+          ].map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setScope(o.id)}
+              className={`rounded-xl border px-2.5 py-1 text-xs font-medium ${scope === o.id ? "gradient-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{scopedItems.length} كلمة في هذا الاختبار</p>
         <Button
           onClick={start}
-          disabled={!ready}
+          disabled={!ready || scopedItems.length < 2}
           className="rounded-xl gradient-primary text-primary-foreground"
         >
           {ready ? "ابدأ الاختبار" : "جاري التحضير…"}
