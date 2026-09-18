@@ -155,7 +155,12 @@ export function startLiveTranscript(
 }
 
 // ---- بثّ صوتي منخفض التأخير: انطق الجمل فور اكتمالها أثناء وصول البثّ ----
-export function createSpeechStreamer(bcp47: string, gender: VoiceGender, onDone?: () => void) {
+export function createSpeechStreamer(
+  bcp47: string,
+  gender: VoiceGender,
+  onDone?: () => void,
+  rate = 0.98,
+) {
   let buffer = "";
   let speaking = false;
   const queue: string[] = [];
