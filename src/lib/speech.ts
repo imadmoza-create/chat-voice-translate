@@ -1,4 +1,8 @@
-// Browser speech helpers: text-to-speech (male/female) + speech recognition.
+// Speech helpers: صوت حقيقي عبر نموذج Google الصوتي (مع حفظ محلي للعمل بلا
+// إنترنت) واحتياطي بمحرّك المتصفح + التعرّف على الكلام.
+import { playNeural, stopNeuralAudio, prefetchClip } from "@/lib/tts";
+
+export { prefetchClip };
 
 export type VoiceGender = "female" | "male";
 
@@ -54,7 +58,17 @@ export async function speak(
   onEnd?: () => void,
   rate = 0.98,
 ) {
-  if (typeof window === "undefined" || !window.speechSynthesis || !text) {
+  if (typeof window === "undefined" || !text) {
+    onEnd?.();
+    return;
+  }
+  // 1) الصوت الحقيقي (نموذج Google) مع نسخة محفوظة محلياً تعمل بلا إنترنت
+  stopSpeaking();
+  const played = await playNeural(text, bcp47, gender, onEnd, rate);
+  if (played) return;
+
+  // 2) احتياطي: محرّك النطق داخل المتصفح
+  if (!window.speechSynthesis) {
     onEnd?.();
     return;
   }
@@ -74,7 +88,9 @@ export async function speak(
 }
 
 export function stopSpeaking() {
-  if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+  if (typeof window === "undefined") return;
+  stopNeuralAudio();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
 // ---- Speech recognition ----
