@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiVoiceChatRouteImport } from './routes/api/voice-chat'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiVoiceChatRoute = ApiVoiceChatRouteImport.update({
   id: '/api/voice-chat',
   path: '/api/voice-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVoiceRoute = AuthenticatedVoiceRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/learn': typeof AuthenticatedLearnRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/voice': typeof AuthenticatedVoiceRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/voice-chat': typeof ApiVoiceChatRoute
 }
 export interface FileRoutesByTo {
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/learn': typeof AuthenticatedLearnRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/voice': typeof AuthenticatedVoiceRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/voice-chat': typeof ApiVoiceChatRoute
 }
 export interface FileRoutesById {
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated/learn': typeof AuthenticatedLearnRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/voice-chat': typeof ApiVoiceChatRoute
 }
 export interface FileRouteTypes {
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/settings'
     | '/voice'
+    | '/api/tts'
     | '/api/voice-chat'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/settings'
     | '/voice'
+    | '/api/tts'
     | '/api/voice-chat'
   id:
     | '__root__'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/_authenticated/learn'
     | '/_authenticated/settings'
     | '/_authenticated/voice'
+    | '/api/tts'
     | '/api/voice-chat'
   fileRoutesById: FileRoutesById
 }
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiTtsRoute: typeof ApiTtsRoute
   ApiVoiceChatRoute: typeof ApiVoiceChatRoute
 }
 
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/api/voice-chat'
       fullPath: '/api/voice-chat'
       preLoaderRoute: typeof ApiVoiceChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/voice': {
@@ -333,6 +353,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiTtsRoute: ApiTtsRoute,
   ApiVoiceChatRoute: ApiVoiceChatRoute,
 }
 export const routeTree = rootRouteImport
