@@ -88,7 +88,9 @@ export async function speak(
 }
 
 export function stopSpeaking() {
-  if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+  if (typeof window === "undefined") return;
+  stopNeuralAudio();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
 // ---- Speech recognition ----
