@@ -19,6 +19,7 @@ import {
 import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { Button } from "@/components/ui/button";
+import { VoiceDiagnostics } from "@/components/VoiceDiagnostics";
 import {
   Mic,
   MicOff,
