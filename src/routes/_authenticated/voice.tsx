@@ -632,6 +632,8 @@ function VoicePage() {
           </div>
         </div>
       </div>
+
+      <VoiceDiagnostics />
     </div>
   );
 }
