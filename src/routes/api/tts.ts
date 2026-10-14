@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { geminiTts, getGoogleApiKey } from "@/lib/google-ai.server";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/audio/speech";
 const MODEL = "google/gemini-3.1-flash-tts-preview";
@@ -39,6 +40,18 @@ export const Route = createFileRoute("/api/tts")({
         const text = (body?.text ?? "").trim();
         if (!text || text.length > 1200) return new Response("Invalid input", { status: 400 });
         const voiceName = body?.gender === "male" ? VOICE_MALE : VOICE_FEMALE;
+
+        // Prefer the user's Google API key when configured; fall back to the gateway.
+        if (getGoogleApiKey()) {
+          try {
+            const audio = await geminiTts(text, voiceName);
+            return new Response(audio, {
+              headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
+            });
+          } catch {
+            // fall through to the Lovable gateway below
+          }
+        }
 
         const upstream = await fetch(GATEWAY_URL, {
           method: "POST",

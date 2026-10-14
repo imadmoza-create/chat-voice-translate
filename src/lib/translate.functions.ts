@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import {
+  geminiGenerate,
+  getGoogleApiKey,
+  GOOGLE_TEXT_MODEL,
+  GOOGLE_VISION_MODEL,
+} from "./google-ai.server";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
@@ -59,6 +65,12 @@ function parseAi(content: string): TranslateResult {
 }
 
 async function callGateway(messages: unknown[], model = MODEL): Promise<TranslateResult> {
+  // Prefer the user's Google API key when configured.
+  if (getGoogleApiKey()) {
+    const gModel = model === VISION_MODEL ? GOOGLE_VISION_MODEL : GOOGLE_TEXT_MODEL;
+    const content = await geminiGenerate(gModel, messages as any, { json: true });
+    return parseAi(content);
+  }
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
@@ -89,6 +101,10 @@ const BatchInput = z.object({
 });
 
 async function callGatewayRaw(messages: unknown[], model = MODEL): Promise<string> {
+  if (getGoogleApiKey()) {
+    const gModel = model === VISION_MODEL ? GOOGLE_VISION_MODEL : GOOGLE_TEXT_MODEL;
+    return geminiGenerate(gModel, messages as any, { json: true });
+  }
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
   const res = await fetch(GATEWAY_URL, {
