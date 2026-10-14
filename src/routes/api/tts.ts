@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { geminiTts, getGoogleApiKey } from "@/lib/google-ai.server";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/audio/speech";
 const MODEL = "google/gemini-3.1-flash-tts-preview";

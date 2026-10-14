@@ -101,6 +101,10 @@ const BatchInput = z.object({
 });
 
 async function callGatewayRaw(messages: unknown[], model = MODEL): Promise<string> {
+  if (getGoogleApiKey()) {
+    const gModel = model === VISION_MODEL ? GOOGLE_VISION_MODEL : GOOGLE_TEXT_MODEL;
+    return geminiGenerate(gModel, messages as any, { json: true });
+  }
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
   const res = await fetch(GATEWAY_URL, {
