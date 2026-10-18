@@ -11,7 +11,14 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [{ title: "تسجيل الدخول — ترجملي" }],
+    meta: [
+      { title: "تسجيل الدخول — ترجملي" },
+      { name: "description", content: "سجّل الدخول إلى ترجملي بالبريد الإلكتروني أو جوجل للترجمة والتعلّم والمحادثة الصوتية." },
+      { property: "og:title", content: "تسجيل الدخول — ترجملي" },
+      { property: "og:description", content: "ادخل إلى حسابك في ترجملي للترجمة والتعلّم والمحادثة الصوتية." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: AuthPage,
 });
@@ -70,14 +77,24 @@ function AuthPage() {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        toast.error("تعذّر تسجيل الدخول عبر جوجل");
-        setBusy(false);
-        return;
+        throw result.error;
       }
       if (result.redirected) return;
-      navigate({ to: "/app" });
-    } catch {
-      toast.error("تعذّر تسجيل الدخول عبر جوجل");
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        throw new Error("لم يكتمل تسجيل الدخول. حاول اختيار حساب جوجل مرة أخرى.");
+      }
+      // AuthProvider observes the installed session and handles navigation above.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/popup.*blocked/i.test(message)) {
+        toast.error("اسمح بالنوافذ المنبثقة لهذا الموقع، ثم حاول الدخول عبر جوجل مجدداً.");
+      } else if (/closed|cancel/i.test(message)) {
+        toast.error("أُلغيت عملية الدخول. يمكنك المحاولة مجدداً.");
+      } else {
+        toast.error("تعذّر تسجيل الدخول عبر جوجل. حاول مجدداً وتأكد من اتصال الإنترنت.");
+      }
+    } finally {
       setBusy(false);
     }
   };
