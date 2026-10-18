@@ -1,1 +1,1 @@
-- [ ] Prepare a practical invitation plan for the first Arabic-speaking students learning Italian or English.
+- [x] Prepare a practical invitation plan for the first Arabic-speaking students learning Italian or English.
