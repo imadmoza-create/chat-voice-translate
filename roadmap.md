@@ -1,2 +1,3 @@
 - [x] Prepare a practical invitation plan for the first Arabic-speaking students learning Italian or English.
 - [x] Diagnose the Google login 404 shown on the user's externally hosted site: screenshot shows Vercel; managed published origin reaches Google sign-in without 404. Full external URL is needed to investigate that deployment.
+- [ ] Reproduce the 404 when opening a quiz and identify the affected link.
