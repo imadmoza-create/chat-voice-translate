@@ -12,7 +12,11 @@ export type LiveConfig = {
 };
 
 // Fill from co-loaded knowledge: the gateway URL, the Live model and the resolved chat model.
-const liveSettings = { baseURL: "", liveModel: "", backendModel: "" };
+const liveSettings = {
+  baseURL: "https://ai.gateway.lovable.dev/v1",
+  liveModel: "openai/gpt-live-1",
+  backendModel: "openai/gpt-6-astra",
+};
 
 export type LiveSocket = {
   readonly readyState: number;
@@ -111,16 +115,54 @@ export function handleLiveRequest(request: Request): Response {
   return new Response(null, response);
 }
 
-const conversationInstructions = `You are Mira, a calm learning companion.
-Speak naturally in brief replies. Ask a focused question when details are unclear.
-Backchannel policy: Use moderate listening sounds without taking over.
-Interruption policy: Stop your answer and listen when the user interrupts.
+type CallContext = {
+  targetLangName: string;
+  nativeLangName: string;
+  scenario?: string;
+  student?: string;
+  voice: "marin" | "cedar";
+};
+
+const clean = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[`]/g, "").trim().slice(0, max) : "");
+
+function parseCallContext(raw: unknown): CallContext {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    targetLangName: clean(r.targetLangName, 40) || "English",
+    nativeLangName: clean(r.nativeLangName, 40) || "Arabic",
+    scenario: clean(r.scenario, 600) || undefined,
+    student: clean(r.student, 600) || undefined,
+    voice: r.voice === "cedar" ? "cedar" : "marin",
+  };
+}
+
+async function verifyUser(token: unknown) {
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  if (typeof token !== "string" || !token || !url || !key) throw new Error("Please sign in to start a call");
+  const res = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error("Please sign in to start a call");
+}
+
+function buildInstructions(c: CallContext) {
+  return `You are a warm, friendly human-like language teacher on a live phone call with a student.
+The student practices ${c.targetLangName}. Their native language is ${c.nativeLangName}.
+Speak mostly in ${c.targetLangName}, slowly and clearly, like a real person on a call: short natural sentences (1-3), contractions, small reactions ("oh nice!", "I see").
+Never lecture. Ask one simple follow-up question each turn to keep the conversation going.
+If the student makes a mistake, gently repeat the correct phrase once, then continue naturally.
+If the student is lost or asks for help, explain briefly in ${c.nativeLangName}, then switch back to ${c.targetLangName}.
+Adapt to the student's level; if they reply in ${c.nativeLangName}, encourage them kindly and give the ${c.targetLangName} phrase.
+${c.scenario ? `Role-play scenario for this call: ${c.scenario}\n` : ""}${c.student ? `About the student: ${c.student}\n` : ""}Backchannel policy: Use moderate, natural listening sounds without taking over.
+Interruption policy: Stop your answer immediately and listen when the student interrupts.
 Delegation policy:
-Backend tools: Reason through questions and plan study sessions across days.
-Delegate to the backend when: The user wants a study schedule or careful reasoning,
-or a correction changes a question already being worked on.
-Do not delegate to the backend when: Greeting, clarifying a question, or repeating
-a still-current answer. Wait for the backend result before presenting its answer.`;
+Backend tools: Careful reasoning for detailed grammar questions and drafting study schedules.
+Delegate to the backend when: The student asks a detailed grammar explanation or wants a study schedule.
+Do not delegate to the backend when: Normal conversation, greetings, simple corrections, or repeating an answer. Wait for the backend result before presenting its answer.`;
+}
+
+function buildOpening(c: CallContext) {
+  return `Start the call now like a friendly teacher picking up the phone. Greet the student warmly in ${c.targetLangName}, ${c.scenario ? "set up the role-play scene in one sentence" : "ask how they are or what they want to talk about"}, then listen.`;
+}
 
 const studyScheduleInput = z
   .object({
@@ -200,7 +242,7 @@ async function answerQuestion(
       },
     },
     system:
-      "Help a spoken learning companion answer the latest user question. " +
+      "Help a spoken language teacher answer the student's latest question in the conversation's languages. " +
       "Transcripts may be incomplete or corrected. Use the latest correction. " +
       "Continue from completed tool results; do not repeat completed actions. " +
       "Return verified facts and useful next steps in at most 150 words. " +
@@ -273,7 +315,8 @@ export function bindLiveConnection(
   execution: LiveExecutionContext,
   connect: LiveConnector,
 ): void {
-  const config = { ...configuration };
+  let config = { ...configuration };
+  let conversationInstructions = "";
   const runID = crypto.randomUUID();
   const setupAbort = new AbortController();
   let gateway: LiveSocket | undefined;
@@ -563,7 +606,12 @@ export function bindLiveConnection(
     }
   }
 
-  async function startSession(sdp: string) {
+  async function startSession(sdp: string, rawContext: unknown, token: unknown) {
+    if (closing || browser.readyState !== 1) return;
+    await verifyUser(token);
+    const callContext = parseCallContext(rawContext);
+    conversationInstructions = buildInstructions(callContext);
+    config = { ...config, openingInstructions: buildOpening(callContext) };
     if (closing || browser.readyState !== 1) return;
     clearTimeout(startTimer);
     startupTimer = setTimeout(() => {
@@ -596,7 +644,7 @@ export function bindLiveConnection(
         session: {
           model: config.liveModel,
           instructions: conversationInstructions,
-          audio: { output: { voice: "marin" } },
+          audio: { output: { voice: parseCallContext(rawContext).voice } },
           delegation: { type: "client" },
         },
         transport: { type: "webrtc", sdp },
@@ -616,7 +664,7 @@ export function bindLiveConnection(
         }
         starting = true;
         execution.waitUntil(
-          startSession(event.sdp).catch((error) => {
+          startSession(event.sdp, event.context, event.token).catch((error) => {
             if (!closing)
               emit({
                 type: "app.error",
