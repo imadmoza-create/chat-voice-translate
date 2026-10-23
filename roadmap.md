@@ -1,1 +1,2 @@
 - [x] Prepare a practical invitation plan for the first Arabic-speaking students learning Italian or English.
+- [ ] Diagnose the Google login 404 shown on the user's externally hosted site.
