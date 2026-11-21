@@ -17,6 +17,7 @@ type LiveState = {
   finalized: boolean | null;
   muted: boolean;
   playbackBlocked: boolean;
+  audioStarted: boolean;
 };
 
 const initialState: LiveState = {
@@ -26,6 +27,7 @@ const initialState: LiveState = {
   finalized: null,
   muted: false,
   playbackBlocked: false,
+  audioStarted: false,
 };
 
 export function useLiveVoice(
@@ -79,8 +81,10 @@ export function useLiveVoice(
         if (!mounted.current || controller.current !== voice) return;
         if (event.type === "app.connected") {
           setCall((previous) => ({ ...previous, status: "connected", hasConnected: true }));
+        } else if (event.type === "app.audio.started") {
+          setCall((previous) => ({ ...previous, audioStarted: true }));
         } else if (event.type === "app.stopping") {
-          setCall((previous) => ({ ...previous, status: "stopping", playbackBlocked: false }));
+          setCall((previous) => ({ ...previous, status: "stopping", playbackBlocked: false, audioStarted: false }));
         } else if (event.type === "app.closed") {
           controller.current = null;
           setCall((previous) => ({
@@ -88,11 +92,12 @@ export function useLiveVoice(
             status: "closed",
             muted: false,
             playbackBlocked: false,
+            audioStarted: false,
             finalized: event.finalized === true,
           }));
         } else if (event.type === "app.playback.blocked" || event.type === "app.playback.resumed") {
           setCall((previous) => ({ ...previous, playbackBlocked: event.type === "app.playback.blocked" }));
-        } else if (["app.error", "gateway.error", "error"].includes(event.type)) {
+        } else if (["app.error", "app.greeting.error", "gateway.error", "error"].includes(event.type)) {
           setCall((previous) => ({ ...previous, error: event.error?.message ?? "Voice request failed." }));
         }
         try {
@@ -155,6 +160,7 @@ function createLiveVoice(options: LiveOptions) {
 
   function stopAudio() {
     microphone?.getTracks().forEach((track) => track.stop());
+    playback?.getTracks().forEach((track) => track.removeEventListener("unmute", remoteAudioStarted));
     if (playback && options.audio.srcObject === playback) {
       options.audio.pause();
       options.audio.srcObject = null;
@@ -202,12 +208,26 @@ function createLiveVoice(options: LiveOptions) {
   }
 
   async function resumePlayback() {
-    if ((state !== "starting" && state !== "active") || !options.audio.srcObject) return;
+    if (state !== "starting" && state !== "active") return false;
+    options.audio.muted = false;
+    options.audio.volume = 1;
+    if (!options.audio.srcObject) return false;
     try {
       await options.audio.play();
       if (state === "starting" || state === "active") options.onEvent({ type: "app.playback.resumed" });
+      return state === "starting" || state === "active";
     } catch {
       if (state === "starting" || state === "active") options.onEvent({ type: "app.playback.blocked" });
+      return false;
+    }
+  }
+
+  async function remoteAudioStarted() {
+    if (state !== "starting" && state !== "active") return;
+    const playing = await resumePlayback();
+    const track = playback?.getAudioTracks()[0];
+    if (playing && track && !track.muted && (state === "starting" || state === "active")) {
+      options.onEvent({ type: "app.audio.started" });
     }
   }
 
@@ -324,7 +344,8 @@ function createLiveVoice(options: LiveOptions) {
         if (state === "stopping" || state === "closed") return;
         playback = new MediaStream([track]);
         options.audio.srcObject = playback;
-        void resumePlayback();
+        track.addEventListener("unmute", remoteAudioStarted);
+        void remoteAudioStarted();
       });
       connection.addEventListener("connectionstatechange", () => {
         if (connection.connectionState === "failed") fail("Voice media connection failed. Start a new call to retry.");

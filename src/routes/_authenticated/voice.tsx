@@ -116,7 +116,9 @@ function VoicePage() {
       : live
         ? call.muted
           ? "الميكروفون مكتوم"
-          : "متصل — تحدّث بشكل طبيعي، ويمكنك مقاطعة المعلم في أي وقت"
+          : !call.audioStarted
+            ? "متصل — جارٍ تجهيز صوت المعلم..."
+            : "متصل — تحدّث بشكل طبيعي، ويمكنك مقاطعة المعلم في أي وقت"
         : call.status === "stopping"
           ? "جارٍ إنهاء المكالمة..."
           : "اضغط لبدء المكالمة";
@@ -171,14 +173,14 @@ function VoicePage() {
           </span>
           <p className="text-center text-sm">{statusText}</p>
           {call.error && <p className="text-center text-sm text-destructive">{call.error}</p>}
-          {call.playbackBlocked && (
-            <Button variant="secondary" onClick={call.resumePlayback}>
-              <Volume2 className="size-4" /> تشغيل صوت المعلم
+          {(call.playbackBlocked || (live && !call.audioStarted)) && (
+            <Button size="lg" variant="secondary" className="rounded-full" onClick={call.resumePlayback}>
+              <Volume2 className="size-5" /> تفعيل صوت المعلم
             </Button>
           )}
         </div>
 
-        <audio ref={call.audioRef} autoPlay className="hidden" />
+        <audio ref={call.audioRef} autoPlay playsInline preload="auto" className="sr-only" aria-label="صوت المعلم" />
 
         <div
           ref={scrollRef}
