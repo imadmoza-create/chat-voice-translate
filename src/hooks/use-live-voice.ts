@@ -161,7 +161,7 @@ function createLiveVoice(options: LiveOptions) {
   function stopAudio() {
     microphone?.getTracks().forEach((track) => track.stop());
     playback?.getTracks().forEach((track) => track.removeEventListener("unmute", remoteAudioStarted));
-    if (playback && options.audio.srcObject === playback) {
+    if (options.audio.srcObject) {
       options.audio.pause();
       options.audio.srcObject = null;
     }
@@ -324,6 +324,13 @@ function createLiveVoice(options: LiveOptions) {
     if (state !== "idle") return;
     state = "starting";
     window.addEventListener("pagehide", stop);
+    // Unlock speaker playback inside the Start gesture. An empty stream keeps
+    // the element mounted until the remote track replaces it; failures are
+    // reported by resumePlayback once that track arrives.
+    options.audio.muted = false;
+    options.audio.volume = 1;
+    options.audio.srcObject = new MediaStream();
+    void options.audio.play().catch(() => {});
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true },

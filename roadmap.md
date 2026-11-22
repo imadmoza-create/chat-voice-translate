@@ -6,4 +6,6 @@
 - [x] Diagnose the Google login 404 shown on the user's externally hosted site: screenshot shows Vercel; managed published origin reaches Google sign-in without 404. Full external URL is needed to investigate that deployment.
 - [ ] Identify the user's quiz 404: authenticated preview opens the body quiz successfully; blocked on the full failing URL or a new screenshot showing it.
 - [x] Show a playback button from connection until the first remote audio arrives, retry playback when audio starts, and verify call cleanup.
-- [ ] Confirm audible teacher audio in a real phone call; the sandbox's live call still stops before media connects with `initial_heartbeat_timeout`.
+- [x] Prime speaker playback inside the Start gesture, retain the recovery button, and verify playback retry and call cleanup with simulated remote media.
+- [x] Document the sandbox's distinct pre-media failure: relay setup succeeds but WebRTC stalls with `initial_heartbeat_timeout`; it is not evidence of audible playback.
+- [ ] Confirm the silent-call repair on the user's phone in preview and the published app; blocked on real-device playback after this update is published.
