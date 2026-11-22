@@ -1,3 +1,7 @@
+- [ ] Turn the general assistant into a cross-curricular student assistant with subjects, study modes, and homework photos.
+- [ ] Let the live voice call teach academic subjects as well as language practice.
+- [ ] Update product copy and navigation to present languages as one part of a broader student assistant.
+- [x] Include primary, middle, secondary, and university stages; no country-specific curriculum claimed.
 - [x] Prepare a practical invitation plan for the first Arabic-speaking students learning Italian or English.
 - [x] Diagnose the Google login 404 shown on the user's externally hosted site: screenshot shows Vercel; managed published origin reaches Google sign-in without 404. Full external URL is needed to investigate that deployment.
 - [ ] Identify the user's quiz 404: authenticated preview opens the body quiz successfully; blocked on the full failing URL or a new screenshot showing it.
