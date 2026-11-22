@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const ICE_SERVERS: RTCIceServer[] = [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+];
+const ACK_TIMEOUT_MS = 15_000;
+const HEARTBEAT_TIMEOUT_MS = 15_000;
+const MEDIA_CONNECT_TIMEOUT_MS = 20_000;
+const MAX_AUTO_RETRIES = 2;
+const NO_RETRY_REASONS = ["duration_limit", "inactivity_timeout"];
+
 export type LiveEvent = {
   type: string;
   reason?: string;
@@ -33,7 +42,6 @@ const initialState: LiveState = {
 export function useLiveVoice(
   options: {
     url?: string;
-    /** Extra data sent with the first start message (auth token, call context). */
     startPayload?: () => Record<string, unknown>;
     onEvent?: (event: LiveEvent) => void | Promise<void>;
   } = {},
@@ -42,6 +50,9 @@ export function useLiveVoice(
   const controller = useRef<ReturnType<typeof createLiveVoice> | null>(null);
   const mounted = useRef(false);
   const latest = useRef(options);
+  const userStopped = useRef(false);
+  const retries = useRef(0);
+  const startRef = useRef<() => void>(() => {});
   const [call, setCall] = useState(initialState);
 
   useEffect(() => {
@@ -51,13 +62,14 @@ export function useLiveVoice(
     mounted.current = true;
     return () => {
       mounted.current = false;
+      userStopped.current = true;
       const voice = controller.current;
       controller.current = null;
       voice?.stop();
     };
   }, []);
 
-  const start = useCallback(() => {
+  const startCall = useCallback(() => {
     if (!mounted.current || controller.current) return;
     const audio = audioRef.current;
     if (!audio) {
@@ -73,13 +85,20 @@ export function useLiveVoice(
       setCall((previous) => ({ ...previous, error: "Invalid voice connection URL." }));
       return;
     }
+    let sawConnected = false;
+    let sawError = false;
+    let noRetry = false;
     const voice = createLiveVoice({
       url: endpoint.href,
       audio,
       startPayload: latest.current.startPayload?.() ?? {},
       onEvent(event) {
         if (!mounted.current || controller.current !== voice) return;
+        if (typeof event.reason === "string" && NO_RETRY_REASONS.includes(event.reason)) {
+          noRetry = true;
+        }
         if (event.type === "app.connected") {
+          sawConnected = true;
           setCall((previous) => ({ ...previous, status: "connected", hasConnected: true }));
         } else if (event.type === "app.audio.started") {
           setCall((previous) => ({ ...previous, audioStarted: true }));
@@ -87,17 +106,33 @@ export function useLiveVoice(
           setCall((previous) => ({ ...previous, status: "stopping", playbackBlocked: false, audioStarted: false }));
         } else if (event.type === "app.closed") {
           controller.current = null;
-          setCall((previous) => ({
-            ...previous,
-            status: "closed",
-            muted: false,
-            playbackBlocked: false,
-            audioStarted: false,
-            finalized: event.finalized === true,
-          }));
+          const shouldRetry =
+            sawConnected &&
+            sawError &&
+            !noRetry &&
+            !userStopped.current &&
+            mounted.current &&
+            retries.current < MAX_AUTO_RETRIES;
+          if (shouldRetry) {
+            retries.current += 1;
+            setCall({ ...initialState, status: "connecting", hasConnected: true });
+            setTimeout(() => {
+              if (mounted.current && !userStopped.current && !controller.current) startRef.current();
+            }, 1500);
+          } else {
+            setCall((previous) => ({
+              ...previous,
+              status: "closed",
+              muted: false,
+              playbackBlocked: false,
+              audioStarted: false,
+              finalized: event.finalized === true,
+            }));
+          }
         } else if (event.type === "app.playback.blocked" || event.type === "app.playback.resumed") {
           setCall((previous) => ({ ...previous, playbackBlocked: event.type === "app.playback.blocked" }));
         } else if (["app.error", "app.greeting.error", "gateway.error", "error"].includes(event.type)) {
+          if (event.type === "app.error" || event.type === "gateway.error") sawError = true;
           setCall((previous) => ({ ...previous, error: event.error?.message ?? "Voice request failed." }));
         }
         try {
@@ -114,7 +149,16 @@ export function useLiveVoice(
     void voice.start();
   }, []);
 
+  startRef.current = startCall;
+
+  const start = useCallback(() => {
+    retries.current = 0;
+    userStopped.current = false;
+    startCall();
+  }, [startCall]);
+
   const stop = useCallback(() => {
+    userStopped.current = true;
     controller.current?.stop();
   }, []);
   const setMuted = useCallback((muted: boolean) => {
@@ -259,8 +303,8 @@ function createLiveVoice(options: LiveOptions) {
 
   function pulse() {
     if (state !== "active") return;
-    if (Date.now() - lastAck >= 5000) return fail("Voice control connection lost");
-    if (Date.now() - lastHeartbeat >= 5000) return fail("Voice media connection lost");
+    if (Date.now() - lastAck >= ACK_TIMEOUT_MS) return fail("Voice control connection lost");
+    if (Date.now() - lastHeartbeat >= HEARTBEAT_TIMEOUT_MS) return fail("Voice media connection lost");
     if (!mediaReady()) return;
     try {
       send({ type: "gateway.heartbeat" });
@@ -293,8 +337,8 @@ function createLiveVoice(options: LiveOptions) {
     answerReceived = true;
     clearTimeout(deadline);
     deadline = setTimeout(
-      () => fail("Voice media did not connect within 12 seconds. Start a new call to retry."),
-      12_000,
+      () => fail("Voice media did not connect in time. Start a new call to retry."),
+      MEDIA_CONNECT_TIMEOUT_MS,
     );
     await peer.setRemoteDescription({ type: "answer", sdp: event.transport.sdp });
     activate();
@@ -324,9 +368,6 @@ function createLiveVoice(options: LiveOptions) {
     if (state !== "idle") return;
     state = "starting";
     window.addEventListener("pagehide", stop);
-    // Unlock speaker playback inside the Start gesture. An empty stream keeps
-    // the element mounted until the remote track replaces it; failures are
-    // reported by resumePlayback once that track arrives.
     options.audio.muted = false;
     options.audio.volume = 1;
     options.audio.srcObject = new MediaStream();
@@ -340,7 +381,7 @@ function createLiveVoice(options: LiveOptions) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      const connection = new RTCPeerConnection();
+      const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       peer = connection;
       for (const track of stream.getAudioTracks()) {
         track.enabled = !muted;
