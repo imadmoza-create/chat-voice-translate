@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   useUserGender,
   useAppLang,
@@ -12,7 +11,7 @@ import { langByCode } from "@/lib/languages";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { Button } from "@/components/ui/button";
 import { VoiceDiagnostics } from "@/components/VoiceDiagnostics";
-import { useLiveVoice, type LiveEvent } from "@/hooks/use-live-voice";
+import { useFreeCall, type FreeCallTurn } from "@/hooks/use-free-call";
 import { Mic, MicOff, PhoneOff, Phone, Loader2, Radio, Sparkles, Volume2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/voice")({
@@ -47,50 +46,25 @@ function VoicePage() {
   const [scenario, setScenario] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [seconds, setSeconds] = useState(0);
-  const tokenRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      tokenRef.current = data.session?.access_token ?? null;
-    });
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => {
-      tokenRef.current = s?.access_token ?? null;
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+  const onTurn = (t: FreeCallTurn) =>
+    setRows((prev) => [...prev, { id: crypto.randomUUID(), role: t.role, text: t.text }]);
 
-  const onEvent = (event: LiveEvent) => {
-    const t = event.type;
-    if (t !== "session.input_transcript.delta" && t !== "session.output_transcript.delta") return;
-    const delta = typeof event.delta === "string" ? event.delta : "";
-    if (!delta) return;
-    const role: Row["role"] = t === "session.input_transcript.delta" ? "user" : "ai";
-    setRows((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.role === role) {
-        return [...prev.slice(0, -1), { ...last, text: last.text + delta }];
-      }
-      return [...prev, { id: crypto.randomUUID(), role, text: delta }];
-    });
-  };
-
-  const call = useLiveVoice({
-    onEvent,
-    startPayload: () => ({
-      token: tokenRef.current,
-      context: {
-        targetLangName: langName,
-        nativeLangName: nativeName,
-        scenario: scenarioById(scenario)?.prompt,
-        student: buildStudentContext(studentProfile) || undefined,
-        // صوت المعلم عكس جنس الطالب
-        voice: gender === "male" ? "marin" : "cedar",
-      },
+  const call = useFreeCall({
+    bcp47: langByCode(lang)?.bcp47 ?? "en-US",
+    gender,
+    onTurn,
+    payload: () => ({
+      targetLang: lang,
+      targetLangName: langName,
+      nativeLangName: nativeName,
+      scenario: scenarioById(scenario)?.prompt,
+      student: buildStudentContext(studentProfile) || undefined,
     }),
   });
 
-  const live = call.status === "connected";
+  const live = ["connected", "speaking", "listening"].includes(call.status);
   const busy = call.status === "connecting" || call.status === "stopping";
   const canStart = call.status === "idle" || call.status === "closed";
 
@@ -116,9 +90,11 @@ function VoicePage() {
       : live
         ? call.muted
           ? "الميكروفون مكتوم"
-          : !call.audioStarted
-            ? "متصل — جارٍ تجهيز صوت المعلم..."
-            : "متصل — تحدّث بشكل طبيعي، ويمكنك مقاطعة المعلم في أي وقت"
+          : call.status === "speaking"
+            ? "المعلم يتكلم — اضغط الميكروفون أو تكلّم لمقاطعته"
+            : call.status === "listening"
+              ? "أستمع إليك — تحدّث بشكل طبيعي"
+              : "متصل"
         : call.status === "stopping"
           ? "جارٍ إنهاء المكالمة..."
           : "اضغط لبدء المكالمة";
@@ -133,7 +109,7 @@ function VoicePage() {
           مكالمة طبيعية بلغة {langName} — والشرح عند الحاجة بلغتك ({nativeName}).
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          المكالمة تولّد ردود المعلم بالذكاء الاصطناعي وقد تستهلك رصيد الذكاء الاصطناعي.
+          المكالمة مجانية وتستخدم ميكروفون جهازك وصوته.
         </p>
       </div>
 
@@ -176,14 +152,7 @@ function VoicePage() {
           </span>
           <p className="text-center text-sm">{statusText}</p>
           {call.error && <p className="text-center text-sm text-destructive">{call.error}</p>}
-          {(call.playbackBlocked || (live && !call.audioStarted)) && (
-            <Button size="lg" variant="secondary" className="rounded-full" onClick={call.resumePlayback}>
-              <Volume2 className="size-5" /> تفعيل صوت المعلم
-            </Button>
-          )}
         </div>
-
-        <audio ref={call.audioRef} autoPlay playsInline preload="auto" className="sr-only" aria-label="صوت المعلم" />
 
         <div
           ref={scrollRef}
@@ -221,7 +190,7 @@ function VoicePage() {
                 variant="secondary"
                 className="size-12 rounded-full"
                 disabled={!live}
-                onClick={() => call.setMuted(!call.muted)}
+                onClick={() => (call.status === "speaking" ? call.interrupt() : call.setMuted(!call.muted))}
                 title={call.muted ? "إلغاء الكتم" : "كتم الميكروفون"}
               >
                 {call.muted ? <MicOff className="size-5" /> : <Mic className="size-5" />}

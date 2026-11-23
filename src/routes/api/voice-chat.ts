@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { geminiGenerate, getGoogleApiKey, GOOGLE_TEXT_MODEL } from "@/lib/google-ai.server";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
-// حدّ صارم لتقليل الكلفة والتأخير في الوضع الصوتي
-const MAX_VOICE_TOKENS = 120;
+const json = (body: unknown, status = 200) => Response.json(body, { status });
+
 
 function voicePrompt(
   langName: string,
@@ -28,16 +27,16 @@ ${scenario ? `السيناريو: ${scenario}\n` : ""}${student ? `معلوما�
 export const Route = createFileRoute("/api/voice-chat")({
   server: {
     handlers: {
+      GET: async () => json({ configured: Boolean(getGoogleApiKey()) }),
       POST: async ({ request }) => {
         const auth = request.headers.get("authorization") ?? "";
-        if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+        if (!auth.startsWith("Bearer ")) return json({ error: "UNAUTHORIZED" }, 401);
         const token = auth.slice(7);
 
         const SUPABASE_URL = process.env["SUPABASE_URL"];
         const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"];
-        const key = process.env["LOVABLE_API_KEY"];
-        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY || !key)
-          return new Response("Server not configured", { status: 500 });
+        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return json({ error: "SERVER_NOT_CONFIGURED" }, 500);
+        if (!getGoogleApiKey()) return json({ error: "NO_GOOGLE_KEY" }, 503);
 
         const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
           global: { headers: { Authorization: `Bearer ${token}` } },
@@ -45,7 +44,7 @@ export const Route = createFileRoute("/api/voice-chat")({
         });
         const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
         const userId = claimsData?.claims?.sub;
-        if (claimsError || !userId) return new Response("Unauthorized", { status: 401 });
+        if (claimsError || !userId) return json({ error: "UNAUTHORIZED" }, 401);
 
         const body = (await request.json().catch(() => null)) as {
           text?: string;
@@ -54,12 +53,14 @@ export const Route = createFileRoute("/api/voice-chat")({
           nativeLangName?: string;
           scenario?: string;
           student?: string;
+          greeting?: boolean;
         } | null;
-        const text = (body?.text ?? "").trim();
+        const greeting = body?.greeting === true;
+        const text = greeting ? "start the call" : (body?.text ?? "").trim();
         const targetLang = (body?.targetLang ?? "en").slice(0, 10);
         const targetLangName = (body?.targetLangName ?? "English").slice(0, 40);
         const nativeLangName = (body?.nativeLangName ?? "العربية").slice(0, 40);
-        if (!text || text.length > 4000) return new Response("Invalid input", { status: 400 });
+        if (!text || text.length > 4000) return json({ error: "INVALID_INPUT" }, 400);
 
         const { data: prog } = await supabase
           .from("learning_progress")
@@ -78,7 +79,7 @@ export const Route = createFileRoute("/api/voice-chat")({
           .limit(1)
           .maybeSingle();
         const isDuplicate = lastMsg?.role === "user" && lastMsg?.content === text;
-        if (!isDuplicate) {
+        if (!isDuplicate && !greeting) {
           await supabase
             .from("chat_messages")
             .insert({ user_id: userId, role: "user", content: text });
@@ -90,84 +91,44 @@ export const Route = createFileRoute("/api/voice-chat")({
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(12);
-        const ordered = (history ?? []).reverse();
 
-        const upstream = await fetch(GATEWAY_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({
-            model: MODEL,
-            stream: true,
-            temperature: 0.6,
-            max_completion_tokens: MAX_VOICE_TOKENS,
-            messages: [
-              {
-                role: "system",
-                content: voicePrompt(
-                  targetLangName,
-                  nativeLangName,
-                  level,
-                  body?.scenario,
-                  body?.student,
-                ),
-              },
-              ...ordered.map((m) => ({ role: m.role, content: m.content })),
-            ],
-          }),
-        });
-
-        if (!upstream.ok || !upstream.body) {
-          const detail = await upstream.text().catch(() => "");
-          return new Response(detail || "AI error", { status: upstream.status || 500 });
+        const ordered = (history ?? []).reverse().map((m) => ({ role: m.role, content: m.content }));
+        if (greeting) {
+          ordered.push({
+            role: "user",
+            content: `(The call just started. Greet the student warmly in ${targetLangName} in one short sentence and ask one simple question.)`,
+          });
         }
 
-        // مرّر البثّ إلى المتصفح فوراً، واحفظ الردّ الكامل في النهاية
-        const encoder = new TextEncoder();
-        const decoder = new TextDecoder();
-        let full = "";
-        let sseBuf = "";
-        const reader = upstream.body.getReader();
+        let reply = "";
+        try {
+          reply = (
+            await geminiGenerate(GOOGLE_TEXT_MODEL, [
+              {
+                role: "system",
+                content:
+                  voicePrompt(targetLangName, nativeLangName, level, body?.scenario?.slice(0, 2000), body?.student?.slice(0, 2000)) +
+                  "\n- الطول: من جملة إلى ثلاث جمل قصيرة فقط.",
+              },
+              ...ordered,
+            ])
+          ).trim();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : "";
+          if (msg === "RATE_LIMIT")
+            return json({ error: "RATE_LIMIT", message: "المعلم مشغول الآن، حاول مرة أخرى بعد لحظة." }, 429);
+          if (msg === "NO_GOOGLE_KEY") return json({ error: "NO_GOOGLE_KEY" }, 503);
+          console.error(e);
+          return json({ error: "AI_ERROR", message: "تعذّر الحصول على ردّ المعلم." }, 502);
+        }
+        if (!reply) return json({ error: "EMPTY_REPLY", message: "لم يصل ردّ من المعلم." }, 502);
 
-        const stream = new ReadableStream({
-          async pull(controller) {
-            const { done, value } = await reader.read();
-            if (done) {
-              if (full.trim()) {
-                await supabase
-                  .from("chat_messages")
-                  .insert({ user_id: userId, role: "assistant", content: full.trim() });
-              }
-              controller.close();
-              return;
-            }
-            const chunk = decoder.decode(value, { stream: true });
-            sseBuf += chunk;
-            const lines = sseBuf.split("\n");
-            sseBuf = lines.pop() ?? "";
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue;
-              const payload = line.slice(6).trim();
-              if (!payload || payload === "[DONE]") continue;
-              try {
-                const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content;
-                if (typeof delta === "string") full += delta;
-              } catch {
-                /* ignore partial frames */
-              }
-            }
-            controller.enqueue(encoder.encode(chunk));
-          },
-          cancel() {
-            void reader.cancel();
-          },
-        });
+        await supabase.from("chat_messages").insert({ user_id: userId, role: "assistant", content: reply });
 
-        return new Response(stream, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-          },
+        // صيغة SSE متوافقة مع صفحة المحادثة النصية
+        const sse = `data: ${JSON.stringify({ choices: [{ delta: { content: reply } }] })}\n\ndata: [DONE]\n\n`;
+        return new Response(sse, {
+          headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
         });
       },
     },

@@ -119,6 +119,31 @@ export function VoiceDiagnostics() {
           },
     );
 
+    // 7) خدمة ردود المعلم — فحص إعداد فقط بدون أي استدعاء للذكاء الاصطناعي
+    try {
+      const res = await fetch("/api/voice-chat", { method: "GET" });
+      const j = (await res.json().catch(() => null)) as { configured?: boolean } | null;
+      out.push(
+        j?.configured
+          ? ok("brain", "خدمة ردود المعلم", "مفتاح Google مُعدّ والخدمة جاهزة.")
+          : {
+              id: "brain",
+              title: "خدمة ردود المعلم",
+              status: "fail",
+              detail: "مفتاح Google غير مُعدّ على الخادم، لذلك لن يردّ المعلم.",
+              fix: "أضف مفتاح GOOGLE_API_KEY في إعدادات المشروع (Secrets) ثم أعد نشر التطبيق.",
+            },
+      );
+    } catch {
+      out.push({
+        id: "brain",
+        title: "خدمة ردود المعلم",
+        status: "fail",
+        detail: "تعذّر الوصول إلى خدمة المعلم.",
+        fix: "تحقق من الإنترنت ثم أعد الفحص.",
+      });
+    }
+
     setChecks(out);
     setRunning(false);
   };
