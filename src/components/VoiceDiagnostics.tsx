@@ -6,7 +6,12 @@ import { Stethoscope, CheckCircle2, XCircle, AlertTriangle, Loader2 } from "luci
 type Status = "ok" | "fail" | "warn";
 type Check = { id: string; title: string; status: Status; detail: string; fix?: string };
 
-const ok = (id: string, title: string, detail: string): Check => ({ id, title, status: "ok", detail });
+const ok = (id: string, title: string, detail: string): Check => ({
+  id,
+  title,
+  status: "ok",
+  detail,
+});
 
 export function VoiceDiagnostics() {
   const [running, setRunning] = useState(false);
@@ -93,43 +98,26 @@ export function VoiceDiagnostics() {
           },
     );
 
-    // 6) خدمة صوت المعلم
-    if (token) {
-      try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ text: "ok", lang: "en-US", gender: "female" }),
-        });
-        if (res.ok) {
-          out.push(ok("tts", "صوت المعلم الطبيعي", "الخدمة تستجيب بشكل سليم."));
-        } else if (res.status === 429) {
-          out.push({
+    // 6) صوت المعلم — فحص محلي فقط (بدون أي طلب للخادم أو للذكاء الاصطناعي)
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+    const voices = synth ? synth.getVoices() : [];
+    out.push(
+      synth
+        ? ok(
+            "tts",
+            "صوت المعلم (صوت الجهاز)",
+            voices.length
+              ? `محرّك النطق في جهازك جاهز (${voices.length} صوت).`
+              : "محرّك النطق في جهازك متاح؛ قد تُحمَّل الأصوات عند أول استماع.",
+          )
+        : {
             id: "tts",
-            title: "صوت المعلم الطبيعي",
+            title: "صوت المعلم (صوت الجهاز)",
             status: "warn",
-            detail: "تم تجاوز عدد الطلبات المسموح مؤقتاً.",
-            fix: "انتظر دقيقة ثم أعد المحاولة؛ سيُستخدم الصوت الاحتياطي حتى ذلك الحين.",
-          });
-        } else {
-          out.push({
-            id: "tts",
-            title: "صوت المعلم الطبيعي",
-            status: "warn",
-            detail: `الخدمة غير متاحة الآن (${res.status}).`,
-            fix: "المحادثة تعمل بالصوت الاحتياطي للمتصفح. أعد الفحص لاحقاً.",
-          });
-        }
-      } catch {
-        out.push({
-          id: "tts",
-          title: "صوت المعلم الطبيعي",
-          status: "warn",
-          detail: "تعذّر الوصول إلى الخدمة.",
-          fix: "تحقق من قوة الشبكة، وسيُستخدم الصوت الاحتياطي مؤقتاً.",
-        });
-      }
-    }
+            detail: "متصفحك لا يدعم النطق المدمج.",
+            fix: "استخدم Chrome أو Safari الحديث.",
+          },
+    );
 
     setChecks(out);
     setRunning(false);

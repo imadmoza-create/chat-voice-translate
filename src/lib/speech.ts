@@ -1,8 +1,7 @@
-// Speech helpers: صوت حقيقي عبر نموذج Google الصوتي (مع حفظ محلي للعمل بلا
-// إنترنت) واحتياطي بمحرّك المتصفح + التعرّف على الكلام.
-import { playNeural, stopNeuralAudio, prefetchClip } from "@/lib/tts";
-
-export { prefetchClip };
+// Speech helpers: النطق الافتراضي بمحرّك الجهاز/المتصفح (مجاني وبلا شبكة).
+// صوت الذكاء الاصطناعي يُستخدم فقط إذا فعّله المستخدم صراحةً من الإعدادات.
+import { playNeural, stopNeuralAudio } from "@/lib/tts";
+import { getNeuralTtsEnabled } from "@/lib/prefs";
 
 export type VoiceGender = "female" | "male";
 
@@ -62,12 +61,14 @@ export async function speak(
     onEnd?.();
     return;
   }
-  // 1) الصوت الحقيقي (نموذج Google) مع نسخة محفوظة محلياً تعمل بلا إنترنت
   stopSpeaking();
-  const played = await playNeural(text, bcp47, gender, onEnd, rate);
-  if (played) return;
+  // 1) صوت الذكاء الاصطناعي فقط عند تفعيله صراحةً (مع إعادة استخدام النسخ المحفوظة)
+  if (getNeuralTtsEnabled()) {
+    const played = await playNeural(text, bcp47, gender, onEnd, rate);
+    if (played) return;
+  }
 
-  // 2) احتياطي: محرّك النطق داخل المتصفح
+  // 2) الافتراضي: محرّك النطق داخل الجهاز/المتصفح
   if (!window.speechSynthesis) {
     onEnd?.();
     return;

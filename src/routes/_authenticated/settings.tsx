@@ -20,6 +20,7 @@ import {
   detectDeviceLang,
   useNativeLang,
   useStudentProfile,
+  useNeuralTtsEnabled,
 } from "@/lib/prefs";
 import { speak, type VoiceGender } from "@/lib/speech";
 import { translateText } from "@/lib/translate.functions";
@@ -428,6 +429,8 @@ function SettingsPage() {
           </div>
         </div>
 
+        <NeuralTtsToggle />
+
         <div className="flex items-center justify-center gap-1">
           {PREVIEW_SAMPLES.map((s, i) => (
             <button
@@ -446,6 +449,32 @@ function SettingsPage() {
           </Link>
         </Button>
       </div>
+    </div>
+  );
+}
+
+function NeuralTtsToggle() {
+  const [on, setOn] = useNeuralTtsEnabled();
+  return (
+    <div className="rounded-xl border bg-background p-3 text-sm">
+      <label className="flex items-center justify-between gap-3">
+        <span className="font-semibold">صوت الذكاء الاصطناعي (اختياري)</span>
+        <input
+          type="checkbox"
+          className="size-5 accent-primary"
+          checked={on}
+          onChange={(e) => setOn(e.target.checked)}
+        />
+      </label>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {on
+          ? "مفعّل: النطق يستخدم صوتاً طبيعياً من Google عبر مفتاحك، والجمل المحفوظة تُعاد بلا إنترنت. إن تعذّر، يُستخدم صوت جهازك."
+          : "الحالي: صوت جهازك (مجاني وبدون إنترنت). فعّل هذا الخيار لصوت أكثر طبيعية."}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        ملاحظة: المحادثة الصوتية المباشرة والمعلم والمساعد يولّدون ردوداً بالذكاء الاصطناعي وقد
+        تستهلك رصيد الذكاء الاصطناعي.
+      </p>
     </div>
   );
 }

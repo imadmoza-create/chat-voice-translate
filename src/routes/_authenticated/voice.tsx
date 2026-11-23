@@ -132,6 +132,9 @@ function VoicePage() {
         <p className="mt-1 text-sm text-muted-foreground">
           مكالمة طبيعية بلغة {langName} — والشرح عند الحاجة بلغتك ({nativeName}).
         </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          المكالمة تولّد ردود المعلم بالذكاء الاصطناعي وقد تستهلك رصيد الذكاء الاصطناعي.
+        </p>
       </div>
 
       {canStart && (

@@ -175,3 +175,34 @@ export function useNativeLangName(): string {
   const [code] = useNativeLang();
   return LANGUAGES.find((l) => l.code === code)?.name ?? "Arabic";
 }
+
+// ---- صوت الذكاء الاصطناعي (اختياري، مُطفأ افتراضياً) ----
+const NEURAL_TTS_KEY = "neural_tts_enabled";
+const NEURAL_TTS_EVENT = "neural-tts-change";
+
+/** هل اختار المستخدم صراحةً صوت الذكاء الاصطناعي؟ الافتراضي: لا (صوت الجهاز). */
+export function getNeuralTtsEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(NEURAL_TTS_KEY) === "1";
+}
+
+export function setNeuralTtsEnabled(on: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NEURAL_TTS_KEY, on ? "1" : "0");
+  window.dispatchEvent(new CustomEvent(NEURAL_TTS_EVENT));
+}
+
+export function useNeuralTtsEnabled(): [boolean, (on: boolean) => void] {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    setOn(getNeuralTtsEnabled());
+    const handler = () => setOn(getNeuralTtsEnabled());
+    window.addEventListener(NEURAL_TTS_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(NEURAL_TTS_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+  return [on, setNeuralTtsEnabled];
+}
