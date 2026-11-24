@@ -6,6 +6,7 @@ import { getNeuralTtsEnabled } from "@/lib/prefs";
 export type VoiceGender = "female" | "male";
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
+let speechGeneration = 0;
 
 export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   return new Promise((resolve) => {
@@ -13,16 +14,23 @@ export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
       resolve([]);
       return;
     }
-    const existing = window.speechSynthesis.getVoices();
+    const synth = window.speechSynthesis;
+    const existing = synth.getVoices();
     if (existing.length) {
       cachedVoices = existing;
       resolve(existing);
       return;
     }
-    window.speechSynthesis.onvoiceschanged = () => {
-      cachedVoices = window.speechSynthesis.getVoices();
-      resolve(cachedVoices);
+    let settled = false;
+    const finish = (voices: SpeechSynthesisVoice[]) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      cachedVoices = voices;
+      resolve(voices);
     };
+    const timeout = window.setTimeout(() => finish(synth.getVoices()), 1200);
+    synth.onvoiceschanged = () => finish(synth.getVoices());
   });
 }
 
@@ -50,6 +58,49 @@ function pickVoice(voices: SpeechSynthesisVoice[], langPrefix: string, gender: V
   return pool[0];
 }
 
+function speakDevicePart(
+  text: string,
+  bcp47: string,
+  gender: VoiceGender,
+  voices: SpeechSynthesisVoice[],
+  rate: number,
+) {
+  return new Promise<void>((resolve) => {
+    const synth = window.speechSynthesis;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = bcp47;
+    const v = pickVoice(voices, bcp47.split("-")[0] ?? bcp47, gender);
+    if (v) utter.voice = v;
+    utter.pitch = gender === "female" ? 1.15 : 0.8;
+    utter.rate = rate;
+    let settled = false;
+    let watchdog = 0;
+    const done = (timedOut = false) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(watchdog);
+      utter.onend = null;
+      utter.onerror = null;
+      if (timedOut) {
+        try {
+          synth.cancel();
+        } catch {
+          /* ignore */
+        }
+      }
+      resolve();
+    };
+    watchdog = window.setTimeout(() => done(true), Math.max(4000, text.length * 90) + 2000);
+    utter.onend = () => done();
+    utter.onerror = () => done();
+    try {
+      synth.speak(utter);
+    } catch {
+      done();
+    }
+  });
+}
+
 export async function speak(
   text: string,
   bcp47: string,
@@ -62,10 +113,11 @@ export async function speak(
     return;
   }
   stopSpeaking();
+  const generation = speechGeneration;
   // 1) صوت الذكاء الاصطناعي فقط عند تفعيله صراحةً (مع إعادة استخدام النسخ المحفوظة)
   if (getNeuralTtsEnabled()) {
     const played = await playNeural(text, bcp47, gender, onEnd, rate);
-    if (played) return;
+    if (played || generation !== speechGeneration) return;
   }
 
   // 2) الافتراضي: محرّك النطق داخل الجهاز/المتصفح
@@ -73,22 +125,21 @@ export async function speak(
     onEnd?.();
     return;
   }
-  window.speechSynthesis.cancel();
   const voices = cachedVoices.length ? cachedVoices : await loadVoices();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = bcp47;
-  const v = pickVoice(voices, bcp47.split("-")[0], gender);
-  if (v) utter.voice = v;
-  utter.pitch = gender === "female" ? 1.15 : 0.8;
-  utter.rate = rate;
-  if (onEnd) {
-    utter.onend = () => onEnd();
-    utter.onerror = () => onEnd();
+  if (generation !== speechGeneration) return;
+  const parts = text
+    .split(/(?<=[.!?؟…])\s+|\n+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  for (const part of parts.length ? parts : [text]) {
+    if (generation !== speechGeneration) return;
+    await speakDevicePart(part, bcp47, gender, voices, rate);
   }
-  window.speechSynthesis.speak(utter);
+  if (generation === speechGeneration) onEnd?.();
 }
 
 export function stopSpeaking() {
+  speechGeneration += 1;
   if (typeof window === "undefined") return;
   stopNeuralAudio();
   if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -122,6 +173,8 @@ export function startLiveTranscript(
   }
   let stopped = false;
   let rec: any;
+  let restartTimer: ReturnType<typeof setTimeout> | undefined;
+  let backoff = 300;
   try {
     rec = new SRClass();
   } catch {
@@ -132,7 +185,23 @@ export function startLiveTranscript(
   rec.continuous = true;
   rec.interimResults = true;
   let finalText = "";
+  const restart = () => {
+    if (stopped) return;
+    handlers?.onRestart?.();
+    const delay = backoff;
+    backoff = Math.min(backoff * 2, 3000);
+    restartTimer = setTimeout(() => {
+      if (stopped) return;
+      try {
+        rec.start();
+        backoff = 300;
+      } catch {
+        restart();
+      }
+    }, delay);
+  };
   rec.onresult = (ev: any) => {
+    backoff = 300;
     let interim = "";
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       const r = ev.results[i];
@@ -146,16 +215,7 @@ export function startLiveTranscript(
     // "no-speech" و"aborted" طبيعية أثناء الصمت — لا تُعتبر أعطالاً
     if (code !== "no-speech" && code !== "aborted") handlers?.onError?.(code);
   };
-  rec.onend = () => {
-    if (!stopped) {
-      handlers?.onRestart?.();
-      try {
-        rec.start();
-      } catch {
-        /* ignore */
-      }
-    }
-  };
+  rec.onend = restart;
   try {
     rec.start();
   } catch {
@@ -163,6 +223,7 @@ export function startLiveTranscript(
   }
   return () => {
     stopped = true;
+    if (restartTimer) clearTimeout(restartTimer);
     try {
       rec.stop();
     } catch {
@@ -183,13 +244,20 @@ export function createSpeechStreamer(
   const queue: string[] = [];
   let finished = false;
   let cancelled = false;
+  let doneCalled = false;
+
+  const finish = () => {
+    if (doneCalled) return;
+    doneCalled = true;
+    onDone?.();
+  };
 
   const next = () => {
     if (cancelled) return;
     const chunk = queue.shift();
     if (!chunk) {
       speaking = false;
-      if (finished) onDone?.();
+      if (finished) finish();
       return;
     }
     speaking = true;
@@ -197,7 +265,7 @@ export function createSpeechStreamer(
   };
 
   const flushSentences = (force: boolean) => {
-    const re = /[^.!?…\n]*[.!?…\n]+/g;
+    const re = /[^.!?؟…\n]*[.!?؟…\n]+/g;
     let m: RegExpExecArray | null;
     let lastIndex = 0;
     while ((m = re.exec(buffer))) {
@@ -220,9 +288,9 @@ export function createSpeechStreamer(
       flushSentences(false);
     },
     end() {
+      if (finished || cancelled) return;
       finished = true;
       flushSentences(true);
-      if (!speaking && queue.length === 0) onDone?.();
     },
     cancel() {
       cancelled = true;

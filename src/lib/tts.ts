@@ -76,6 +76,8 @@ export async function isClipCached(text: string, bcp47: string, gender: TtsGende
 }
 
 async function fetchClip(text: string, bcp47: string, gender: TtsGender): Promise<Blob | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
     if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
     const { data } = await supabase.auth.getSession();
@@ -85,6 +87,7 @@ async function fetchClip(text: string, bcp47: string, gender: TtsGender): Promis
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ text, lang: bcp47, gender }),
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     const blob = await res.blob();
@@ -92,6 +95,8 @@ async function fetchClip(text: string, bcp47: string, gender: TtsGender): Promis
     return blob;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

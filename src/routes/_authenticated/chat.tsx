@@ -365,8 +365,11 @@ function ChatPage() {
   // ============ الوضع الصوتي: بثّ منخفض التأخير ============
   const streamerRef = useRef<ReturnType<typeof createSpeechStreamer> | null>(null);
   const stopBargeRef = useRef<() => void>(() => {});
+  const voiceRequestRef = useRef<AbortController | null>(null);
 
   const stopAiAudio = () => {
+    voiceRequestRef.current?.abort();
+    voiceRequestRef.current = null;
     streamerRef.current?.cancel();
     streamerRef.current = null;
     stopBargeRef.current();
@@ -391,6 +394,13 @@ function ChatPage() {
     ]);
     setSending(true);
     const id = `a-${Date.now()}`;
+    const controller = new AbortController();
+    voiceRequestRef.current = controller;
+    let timedOut = false;
+    const requestTimeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 30_000);
     let acc = "";
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -407,6 +417,7 @@ function ChatPage() {
           scenario: scenarioById(scenario)?.prompt,
           student: buildStudentContext(studentProfile) || undefined,
         }),
+        signal: controller.signal,
       });
       if (res.status === 429) throw new Error("RATE_LIMIT");
       if (res.status === 402) throw new Error("CREDITS");
@@ -463,14 +474,20 @@ function ChatPage() {
       }
       streamer.end();
     } catch (e: any) {
-      const msg = e?.message?.includes("RATE_LIMIT")
-        ? "تم تجاوز حد الطلبات، حاول بعد قليل."
-        : e?.message?.includes("CREDITS")
-          ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
-          : "حدث خطأ أثناء المحادثة الصوتية.";
+      if (controller.signal.aborted && !timedOut) return;
+      const msg = timedOut
+        ? "انتهت مهلة ردّ المعلم. تحقّق من اتصالك بالإنترنت وحاول مرة أخرى."
+        : e?.message?.includes("RATE_LIMIT")
+          ? "تم تجاوز حد الطلبات، حاول بعد قليل."
+          : e?.message?.includes("CREDITS")
+            ? "نفد الرصيد. يرجى ترقية الخطة لإضافة رصيد."
+            : "حدث خطأ أثناء المحادثة الصوتية.";
       setError(msg);
       stopAiAudio();
+      if (liveRef.current) setTimeout(() => startRecRef.current(), 250);
     } finally {
+      window.clearTimeout(requestTimeout);
+      if (voiceRequestRef.current === controller) voiceRequestRef.current = null;
       setSending(false);
     }
   };
