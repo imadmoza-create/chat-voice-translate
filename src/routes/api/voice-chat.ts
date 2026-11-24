@@ -5,7 +5,6 @@ import { geminiGenerate, getGoogleApiKey, GOOGLE_TEXT_MODEL } from "@/lib/google
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
-
 function voicePrompt(
   langName: string,
   nativeName: string,
@@ -35,7 +34,8 @@ export const Route = createFileRoute("/api/voice-chat")({
 
         const SUPABASE_URL = process.env["SUPABASE_URL"];
         const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"];
-        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return json({ error: "SERVER_NOT_CONFIGURED" }, 500);
+        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)
+          return json({ error: "SERVER_NOT_CONFIGURED" }, 500);
         if (!getGoogleApiKey()) return json({ error: "NO_GOOGLE_KEY" }, 503);
 
         const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -70,6 +70,21 @@ export const Route = createFileRoute("/api/voice-chat")({
           .maybeSingle();
         const level = prog?.level ?? "A1";
 
+        const since = new Date(Date.now() - 60_000).toISOString();
+        const { count: recentTurns, error: rateLimitError } = await supabase
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("role", "user")
+          .gte("created_at", since);
+        if (rateLimitError) return json({ error: "RATE_LIMIT_CHECK_FAILED" }, 500);
+        if ((recentTurns ?? 0) > 12) {
+          return json(
+            { error: "RATE_LIMIT", message: "المعلم مشغول الآن، حاول مرة أخرى بعد لحظة." },
+            429,
+          );
+        }
+
         // تفادي تكرار الرسالة عند إعادة المحاولة بعد انقطاع الشبكة
         const { data: lastMsg } = await supabase
           .from("chat_messages")
@@ -92,7 +107,9 @@ export const Route = createFileRoute("/api/voice-chat")({
           .order("created_at", { ascending: false })
           .limit(12);
 
-        const ordered = (history ?? []).reverse().map((m) => ({ role: m.role, content: m.content }));
+        const ordered = (history ?? [])
+          .reverse()
+          .map((m) => ({ role: m.role, content: m.content }));
         if (greeting) {
           ordered.push({
             role: "user",
@@ -103,27 +120,41 @@ export const Route = createFileRoute("/api/voice-chat")({
         let reply = "";
         try {
           reply = (
-            await geminiGenerate(GOOGLE_TEXT_MODEL, [
-              {
-                role: "system",
-                content:
-                  voicePrompt(targetLangName, nativeLangName, level, body?.scenario?.slice(0, 2000), body?.student?.slice(0, 2000)) +
-                  "\n- الطول: من جملة إلى ثلاث جمل قصيرة فقط.",
-              },
-              ...ordered,
-            ])
+            await geminiGenerate(
+              GOOGLE_TEXT_MODEL,
+              [
+                {
+                  role: "system",
+                  content:
+                    voicePrompt(
+                      targetLangName,
+                      nativeLangName,
+                      level,
+                      body?.scenario?.slice(0, 2000),
+                      body?.student?.slice(0, 2000),
+                    ) + "\n- الطول: من جملة إلى ثلاث جمل قصيرة فقط.",
+                },
+                ...ordered,
+              ],
+              { fast: true },
+            )
           ).trim();
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
           if (msg === "RATE_LIMIT")
-            return json({ error: "RATE_LIMIT", message: "المعلم مشغول الآن، حاول مرة أخرى بعد لحظة." }, 429);
+            return json(
+              { error: "RATE_LIMIT", message: "المعلم مشغول الآن، حاول مرة أخرى بعد لحظة." },
+              429,
+            );
           if (msg === "NO_GOOGLE_KEY") return json({ error: "NO_GOOGLE_KEY" }, 503);
           console.error(e);
           return json({ error: "AI_ERROR", message: "تعذّر الحصول على ردّ المعلم." }, 502);
         }
         if (!reply) return json({ error: "EMPTY_REPLY", message: "لم يصل ردّ من المعلم." }, 502);
 
-        await supabase.from("chat_messages").insert({ user_id: userId, role: "assistant", content: reply });
+        await supabase
+          .from("chat_messages")
+          .insert({ user_id: userId, role: "assistant", content: reply });
 
         // صيغة SSE متوافقة مع صفحة المحادثة النصية
         const sse = `data: ${JSON.stringify({ choices: [{ delta: { content: reply } }] })}\n\ndata: [DONE]\n\n`;

@@ -49,7 +49,7 @@ function toGeminiContents(messages: IncomingMessage[]) {
 export async function geminiGenerate(
   model: string,
   messages: IncomingMessage[],
-  opts: { json?: boolean } = {},
+  opts: { json?: boolean; fast?: boolean } = {},
 ): Promise<string> {
   const key = getGoogleApiKey();
   if (!key) throw new Error("NO_GOOGLE_KEY");
@@ -60,7 +60,10 @@ export async function geminiGenerate(
     body: JSON.stringify({
       ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
       contents,
-      generationConfig: opts.json ? { responseMimeType: "application/json" } : {},
+      generationConfig: {
+        ...(opts.json ? { responseMimeType: "application/json" } : {}),
+        ...(opts.fast ? { thinkingConfig: { thinkingBudget: 0 }, maxOutputTokens: 256 } : {}),
+      },
     }),
   });
   if (res.status === 429) throw new Error("RATE_LIMIT");

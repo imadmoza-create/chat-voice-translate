@@ -91,7 +91,7 @@ function VoicePage() {
         ? call.muted
           ? "الميكروفون مكتوم"
           : call.status === "speaking"
-            ? "المعلم يتكلم — اضغط الميكروفون أو تكلّم لمقاطعته"
+            ? "المعلم يتكلم — اضغط الميكروفون لمقاطعته"
             : call.status === "listening"
               ? "أستمع إليك — تحدّث بشكل طبيعي"
               : "متصل"
@@ -164,11 +164,16 @@ function VoicePage() {
             </p>
           ) : (
             rows.map((r) => (
-              <div key={r.id} className={`flex ${r.role === "user" ? "justify-start" : "justify-end"}`}>
+              <div
+                key={r.id}
+                className={`flex ${r.role === "user" ? "justify-start" : "justify-end"}`}
+              >
                 <div
                   dir="auto"
                   className={`max-w-[85%] rounded-2xl px-3 py-2 ${
-                    r.role === "user" ? "gradient-primary text-primary-foreground" : "border bg-background"
+                    r.role === "user"
+                      ? "gradient-primary text-primary-foreground"
+                      : "border bg-background"
                   }`}
                 >
                   {r.text}
@@ -180,7 +185,11 @@ function VoicePage() {
 
         <div className="mt-4 flex items-center justify-center gap-3">
           {canStart ? (
-            <Button size="lg" className="rounded-full gradient-primary text-primary-foreground" onClick={start}>
+            <Button
+              size="lg"
+              className="rounded-full gradient-primary text-primary-foreground"
+              onClick={start}
+            >
               <Phone className="size-5" /> ابدأ المكالمة
             </Button>
           ) : (
@@ -190,7 +199,9 @@ function VoicePage() {
                 variant="secondary"
                 className="size-12 rounded-full"
                 disabled={!live}
-                onClick={() => (call.status === "speaking" ? call.interrupt() : call.setMuted(!call.muted))}
+                onClick={() =>
+                  call.status === "speaking" ? call.interrupt() : call.setMuted(!call.muted)
+                }
                 title={call.muted ? "إلغاء الكتم" : "كتم الميكروفون"}
               >
                 {call.muted ? <MicOff className="size-5" /> : <Mic className="size-5" />}
